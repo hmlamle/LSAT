@@ -18,39 +18,52 @@ library(tidyverse)
 # quick<-read.csv("C:/Users/nicor/Downloads/M12-53-2021-R - Copy.csv")
 # quick<-read.csv("C:/Users/nicor/Downloads/M12-53-2021-R - Copy (2).csv")
 
-# not sure what all of these were about, I will only be using one "read.csv" command
-# and replacing each time for each of my nail csv's 
 
-nail1 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_1_rugo.csv")
-nail2 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_2_rugo_unsure.csv")
-nail3 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_3_rugo.csv")
-nail4 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_4_rugo_unsure.csv")
-nail5 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_5_rugo.csv")
-nail6 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_6_rugo.csv")
-nail7 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_7_rugo.csv")
-nail8 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_8_rugo.csv")
-nail9 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_9_rugo.csv")
-nail10 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_10_rugo_unsure.csv")
-nail11 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_11_rugo.csv")
-nail12 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_12_rugo.csv")
-nail13 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_13_rugo.csv")
-nail14 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_14_rugo.csv")
-nail15 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_15_rugo.csv")
-nail16 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_16_rugo.csv")
-nail17 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_17_rugo.csv")
-nail18 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_18_rugo.csv")
-nail19 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_19_rugo.csv")
-nail20 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_20_rugo.csv")
-nail21 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_21_rugo.csv")
-nail22 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_22_rugo.csv")
-nail23 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_23_rugo.csv")
-nail24 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_24_rugo.csv")
-nail25 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_25_rugo.csv")
-nail26 <- read.csv("C:/Users/hanna/OneDrive - Florida International University/R/LSAT rugosity/nail_26_rugo.csv")
+# creating a for loop to make the data entry easier, 
+# since we have 1 cv for each nail.... 
 
-# listing all viscore values to make using a for loop easier
+# Define the number of files for each category
+n_files <- 26
 
-all_nails <- list(nail1, nail2, nail3, nail4, nail5, nail6, nail7, nail8, nail9, nail10, nail11, nail12, nail13, nail14, nail15, nail16, nail17, nail18, nail19, nail20, nail21, nail22, nail23, nail24, nail25, nail26) 
+# Initialize empty lists to store the data
+data_25cm <- list()
+data_50cm <- list()
+data_100cm <- list()
+
+# 25cm microquadrat: 
+for (i in 1:n_files) {
+  file_name <- paste0("C:/Users/hanna/OneDrive - Florida International University/photogrammetry/LSAT data/10-20-2023/North Miami Beach/Viscore redo 031225/", "25cm_", i, ".csv")
+  data_25cm[[i]] <- read.csv(file_name)
+}
+
+# rename the columns
+for (i in 1:n_files) {
+  colnames(data_25cm[[i]]) <- c(paste0("nail", i), "transect", "sample", "x", "y", "z")
+}
+
+
+# 50cm microquadrat: 
+for (i in 1:n_files) {
+  file_name <- paste0("C:/Users/hanna/OneDrive - Florida International University/photogrammetry/LSAT data/10-20-2023/North Miami Beach/Viscore redo 031225/", "50cm_", i, ".csv")
+  data_50cm[[i]] <- read.csv(file_name)
+}
+
+# rename the columns
+for (i in 1:n_files) {
+  colnames(data_50cm[[i]]) <- c(paste0("nail", i), "transect", "sample", "x", "y", "z")
+}
+
+
+# and last, 100cm microquadrat: 
+for (i in 1:n_files) {
+  file_name <- paste0("C:/Users/hanna/OneDrive - Florida International University/photogrammetry/LSAT data/10-20-2023/North Miami Beach/Viscore redo 031225/", "100cm-", i, ".csv")
+  data_100cm[[i]] <- read.csv(file_name)
+}
+
+# rename the columns
+for (i in 1:n_files) {
+  colnames(data_100cm[[i]]) <- c(paste0("nail", i), "transect", "sample", "x", "y", "z")
+}
 
 
 # -------------------- Rugosity how Ryan & Rolo suggest -----------------------
@@ -59,10 +72,19 @@ all_nails <- list(nail1, nail2, nail3, nail4, nail5, nail6, nail7, nail8, nail9,
 # Initialize an empty list to store the results
 rugosity_list <- list()
 
-# Loop through each nail dataset and apply the rugosity calculation
-for (i in 1:length(all_nails)) {
+rugo25 <- list()
+rugo50 <- list()
+rugo100 <- list()
+
+#
+# 25cm (original microquadrats):
+#
+
+
+# a For Loop to apply rugo calculation for each nail for 25cm: 
+for (i in 1:length(data_25cm)) {
   # Perform the calculations on each nail dataset
-  rugosity_list[[i]] <- all_nails[[i]] %>%
+  rugo25[[i]] <- data_25cm[[i]] %>%
     filter(z != 0) %>%
     group_by(transect) %>%
     summarize(
@@ -73,32 +95,98 @@ for (i in 1:length(all_nails)) {
     ) %>%
     ungroup() %>%
     summarize(
-      avg_rugosity = mean(rugosity),
-      rugosity_variance = var(rugosity),
-      avg_point_range = mean(point_range)
+      avg_rugo25 = mean(rugosity),
+      rugo25_variance = var(rugosity),
+      avg_point_range25 = mean(point_range)
     )
   
 }
 
 
-combined_rugosity <- bind_rows(rugosity_list, .id = "nail")
+FINAL_25_rugo <- bind_rows(rugo25, .id = "nail")
+write.csv(FINAL_25_rugo, file="25_rugo.csv")
 
 
-write.csv(combined_rugosity,"rugo_25cm.csv")
+#
+# 50cm: 
+#
 
+
+# a For Loop to apply rugo calculation for each nail: 
+for (i in 1:length(data_50cm)) {
+  # Perform the calculations on each nail dataset
+  rugo50[[i]] <- data_50cm[[i]] %>%
+    filter(z != 0) %>%
+    group_by(transect) %>%
+    summarize(
+      standard_length = sum(sqrt(diff(x)^2 + diff(y)^2)),  # Euclidean distance in 2D space
+      true_length = sum(sqrt(diff(x)^2 + diff(y)^2 + diff(z)^2)),  # 3D distance
+      rugosity = (true_length / standard_length), 
+      point_range = max(z) - min(z)  # Range between lowest and highest point
+    ) %>%
+    ungroup() %>%
+    summarize(
+      avg_rugo50 = mean(rugosity),
+      rugo50_variance = var(rugosity),
+      avg_point_range50 = mean(point_range)
+    )
+  
+}
+
+
+FINAL_50_rugo <- bind_rows(rugo50, .id = "nail")
+write.csv(FINAL_50_rugo, file="50_rugo.csv")
+
+#
+# 100cm: 
+#
+
+# a For Loop to apply rugo calculation for each nail: 
+for (i in 1:length(data_100cm)) {
+  # Perform the calculations on each nail dataset
+  rugo100[[i]] <- data_100cm[[i]] %>%
+    filter(z != 0) %>%
+    group_by(transect) %>%
+    summarize(
+      standard_length = sum(sqrt(diff(x)^2 + diff(y)^2)),  # Euclidean distance in 2D space
+      true_length = sum(sqrt(diff(x)^2 + diff(y)^2 + diff(z)^2)),  # 3D distance
+      rugosity = (true_length / standard_length), 
+      point_range = max(z) - min(z)  # Range between lowest and highest point
+    ) %>%
+    ungroup() %>%
+    summarize(
+      avg_rugo100 = mean(rugosity),
+      rugo100_variance = var(rugosity),
+      avg_point_range100 = mean(point_range)
+    )
+  
+}
+
+
+FINAL_100_rugo <- bind_rows(rugo100, .id = "nail")
+write.csv(FINAL_100_rugo, file="100_rugo.csv")
 
 
 
 # -------------------- Rugosity how Alain discussed -----------------------
 
 
-# Initialize an empty list to store the results
-Alain_rugosity <- list()
 
-# Loop through each nail dataset and apply the rugosity calculation
-for (i in 1:length(all_nails)) {
+# Initialize an empty list to store the results
+Alain_rugo25 <- list()
+Alain_rugo50 <- list()
+Alain_rugo100 <- list()
+
+
+#
+# 25cm (original microquadrats):
+#
+
+
+# Loop through each nail dataset and apply the rugosity calculation 
+for (i in 1:length(data_25cm)) {
   # Perform the calculations on each nail dataset
-  Alain_rugosity[[i]] <- all_nails[[i]] %>%
+  Alain_rugo25[[i]] <- data_25cm[[i]] %>%
     filter(z != 0) %>%
     group_by(transect) %>%
     summarize(
@@ -109,19 +197,78 @@ for (i in 1:length(all_nails)) {
     ) %>%
     ungroup() %>%
     summarize(
-      avg_rugosity = mean(rugosity),
-      rugosity_variance = var(rugosity),
-      avg_point_range = mean(point_range)
+      rugo25_A = mean(rugosity),
+      rugo25_var_A = var(rugosity),
+      avg_point_range_A25 = mean(point_range)
     )
   
 }
 
 
-Alain_combined_rugosity <- bind_rows(Alain_rugosity, .id = "nail")
+
+FINAL_Alain25 <- bind_rows(Alain_rugo25, .id = "nail")
+write.csv(FINAL_Alain25, file="25_rugo_Alain.csv")
 
 
-write.csv(Alain_combined_rugosity,"Alain_rugo_25cm.csv")
+#
+# 50cm:
+#
 
+
+# Loop through each nail dataset and apply the rugosity calculation 
+for (i in 1:length(data_50cm)) {
+  # Perform the calculations on each nail dataset
+  Alain_rugo50[[i]] <- data_50cm[[i]] %>%
+    filter(z != 0) %>%
+    group_by(transect) %>%
+    summarize(
+      standard_length = sum(sqrt(diff(x)^2 + diff(y)^2)),  # Euclidean distance in 2D space
+      true_length = sum(sqrt(diff(x)^2 + diff(y)^2 + diff(z)^2)),  # 3D distance
+      rugosity = (standard_length / true_length), 
+      point_range = max(z) - min(z)  # Range between lowest and highest point
+    ) %>%
+    ungroup() %>%
+    summarize(
+      rugo50_A = mean(rugosity),
+      rugo50_var_A = var(rugosity),
+      avg_point_range_A50 = mean(point_range)
+    )
+  
+}
+
+
+FINAL_Alain50 <- bind_rows(Alain_rugo50, .id = "nail")
+write.csv(FINAL_Alain50, file="50_rugo_Alain.csv")
+
+#
+# 100cm:
+#
+
+
+# Loop through each nail dataset and apply the rugosity calculation 
+for (i in 1:length(data_100cm)) {
+  # Perform the calculations on each nail dataset
+  Alain_rugo100[[i]] <- data_100cm[[i]] %>%
+    filter(z != 0) %>%
+    group_by(transect) %>%
+    summarize(
+      standard_length = sum(sqrt(diff(x)^2 + diff(y)^2)),  # Euclidean distance in 2D space
+      true_length = sum(sqrt(diff(x)^2 + diff(y)^2 + diff(z)^2)),  # 3D distance
+      rugosity = (standard_length / true_length), 
+      point_range = max(z) - min(z)  # Range between lowest and highest point
+    ) %>%
+    ungroup() %>%
+    summarize(
+      rugo100_A = mean(rugosity),
+      rugo100_var_A = var(rugosity),
+      avg_point_range_A100 = mean(point_range)
+    )
+  
+}
+
+
+FINAL_Alain100 <- bind_rows(Alain_rugo100, .id = "nail")
+write.csv(FINAL_Alain100, file="100_rugo_Alain.csv")
 
 
 

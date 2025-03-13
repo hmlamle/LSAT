@@ -1,12 +1,33 @@
 # LSAT data visualization 
 # Hannah-Marie Lamle
 # 5/21/24
+## Update 3/12/25
 
 library(tidyverse)
 library(ggplot2)
 library(readxl)
 
-Comparison_metrics_South_Canyon <- read_excel("Comparison_metrics_South_Canyon.xlsx") #load excel file into R
+# major revamp incoming. I did not consolidate everything using excel. 
+
+#Comparison_metrics_South_Canyon <- read_excel("Comparison_metrics_South_Canyon.xlsx") 
+
+
+#------- setting up the Databases with all values for each area: 25, 50, 100 ---
+
+LSAT_bio <- read_xlsx("South Canyon Fall LSAT Data.xlsx") %>%
+rename(LSAT_bio, nail = Plot)
+slope25 <- read_xlsx("avg_slope_25cm.xlsx")
+
+
+rawdata25 <- list(LSAT_bio, rugo25, Alain_rugo25, slope25)
+rawdata25 %>% reduce(full_join, by='nail', copy = TRUE)
+
+print(alain_rugo25[1])
+
+
+
+
+
 
 ggplot(Comparison_metrics_South_Canyon, aes(Turf_length, Sediment_depth))+      # modeling sediment depth (y) as 
   geom_point()+                                                                 # function of turf length (x)
