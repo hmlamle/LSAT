@@ -42,8 +42,7 @@ slope100 <- slope100 %>% filter(nail != 26)
 
 # bring in biotic data: 
 LSAT_bio <- read_xlsx("South Canyon Fall LSAT Data.xlsx") %>%
-  rename(nail = Plot) %>%
-  rename(turf_length = c('Turf Length (mm)'))
+  rename(nail = Plot) 
 
 # and make sure the column type is the same before joining: 
 LSAT_bio$nail <- as.character(LSAT_bio$nail)
