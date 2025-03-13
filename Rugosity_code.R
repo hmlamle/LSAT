@@ -70,7 +70,7 @@ for (i in 1:n_files) {
 
 
 # Initialize an empty list to store the results
-rugosity_list <- list()
+# rugosity_list <- list() don't need this anymore, was reminant of code before automated data import
 
 rugo25 <- list()
 rugo50 <- list()
