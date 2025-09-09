@@ -7,8 +7,13 @@ I went out in the field and performed a survey of the transect site of interest 
 [Image of the Large Area Image with boxes on top representing each of the different areas that structural data was extracted from.](lai.png)
 
 
-# Files: 
-The data from GIS was outputted as CSVs ready to be analyzed. The data from Viscore needed to be ran through R to calculate average rugosity values. Start with that script (Rugosity_code.R) first, to obtain rugosity calculations. Then, proceed to combining all the data in the data_visualization.R script and running the models. 
+# File Locations: 
+* All raw data is housed in the cloud under my channel in the Coral Reef Fisheries Team
+* Cleaned datasets are exported as .csv files in this repository. 
+* Output figures are also housed here in this repository. 
+
+File Structure: 
+
 
 # To-Do:
 I still need to clean this repository up. Currently, the data sheets from Viscore are missing which I need to add, and Delete old files. So the names on these scripts of spreadsheets won't work, because they aren't available. 

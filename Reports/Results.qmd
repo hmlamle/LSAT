@@ -1,0 +1,196 @@
+---
+title: "Comparing different scales on predictability of structral components in LAIs to LSAT metrics"
+author: "Hannah-Marie Lamle"
+date: "March 13, 2025"
+format: pdf
+---
+
+## Background  
+It's hypothesized that the limiting factor for LSAT growth and domination on the coral reef benthos is the structural complexity of the substrate, measured by rugosity and slope. Duran et al 2024 did find an inverse relationship with reef habitat and LSAT abundance, showing that more structurally complex habitats had less LSAT coverage than those with less structure (rugosity, slope). However, understanding specific biological and physical metrics of the LSAT patches (turf height, sediment depth) were not explored as a function of structural complexity. We are assessing the possibility of quantifying this relationship using geostatistics extracted from large area images of the reef sites, using photogrammetry. 
+
+LSAT measurements are taken in a known area along a transect on the reef. This transect is 25m long, with a nail to mark each plot at each meter, totalling 25 plots. At each plot a microquadrat of 25cm x 25cm was placed where LSAT measurements were taken. To extract physical metrics of the reef at each plot, photogrammetry was used to recreate a model of the transect. I took hundreds of overlapping images of the transect where LSAT measurements are made. These images were stitched together in Agisoft Metashape, making multiple products: a point cloud, digital elevation model (DEM), and the 2D large area image. In order to extract rugosity values, the point cloud was inserted into VISCORE, and a box in the dimensions of the microquadrat (25x25cm) was drawn to extract point (x,y,z) data at each plot. Point data within each plot was extracted along 20 transect lines in the plot, with 100 points per transect (figure 1). This point data was exported as CSV files that were then imported into RStudio, and rugosity was calculated. 
+
+![Screen grab of VISCORE rugosity calcuation process. A box the size of the microquadrat (25cm x 25cm) was delineated and moved to extract x,y,z point data at 100 points along 20 transect lines (orange box with lines). This process was repeated for all 25 nails, and at different scales (50xm x 50cm, 100cm x 100cm).](viscore_sc.png)
+
+Rugosity is presented in two ways, "Rugosity" and "Rugosity on 0-1 Scale." Rugosity was measured first by dividing the true length of the transect line in the box (shown in figure 1) which incorporates all variation in the benthos by the standard length, which for the 25cm box was 25cm. This calculation provides an index starting at 1, which indicates a totally flat surface (true length of 1 / standard length of 1) and increases endlessly. Thus, a value of 2 means that the true length of the transect line is twice as long as the standard length. Alternatively, the Rugosity on a 0-1 scale is the inverse relationsihp of the method discussed above. Traditionally, this was calculated by laying a chain on the benthos of a known length (eg, 50cm) and measuring the true length that the chain stretched from end to end, taking the shape of the benthos. Thus, the true length is divided by the standard length, resulting in an index from 0-1 where 1 = completely flat, and rugosity increasing to 0. A value of 0.5 means the true length of the chain was half of the standard length.
+
+To calculate the slope of the microquadrats of varying size, the DEM of the model was input to GIS in order to build a second raster layer that calculated the slope of each cell (each cell for this model was 0.001m x 0.001m). This was done by using a 3x3 cell moving window to calculate slope of the middle cell in the window. Specifically, the calculation fit a plane to the 3x3 cells, using the least squares method to calculate slope for the middle cell in the window based on the slope of the plane, measured in degrees. This was done for each plot in a 25cm x 25cm box, and repeated for 50cm x 50cm and 100cm x 100cm boxes. Boxes delineating the area where average slope was extracted is shown in figure 2. The output average slope for each box was exported to a CSV and used in the linear regressions in RStudio.
+
+![Screen grab of GIS showing LAI with areas for structural elements extracted. Yellow dot is location of nail marking each point. Green box = 25cm, Blue box = 50cm, Pink box = 100cm](lai.png)
+
+
+# Rugosity predicting Turf Length:
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+library(dplyr)
+```
+
+
+```{r echo=FALSE, warning=FALSE, error=FALSE}
+source("Rugosity_code.R")
+source("data_visualization.R")
+
+ggplot(rawdata25, aes(x = avg_rugo25, y = `Turf length (mm)`))+   
+  geom_point()+
+  geom_smooth(method = "lm", formula = y ~ x)+
+  xlab("Rugosity")+
+  ggtitle("25cm microquadrat")
+model <- lm(`Turf length (mm)` ~ avg_rugo25, data = rawdata25)
+summary(model)
+
+
+ggplot(rawdata25, aes(rugo25_A, y = `Turf length (mm)`))+     
+  geom_point()+                                                                 
+  geom_smooth(method = "lm", formula = y ~ x)+
+  xlab("Rugosity on 0-1 scale")+
+  ggtitle("25cm quadrat")
+model <- lm(`Turf length (mm)` ~ rugo25_A, data = rawdata25)
+summary(model)
+
+ggplot(rawdata50, aes(x = avg_rugo50, y = `Turf length (mm)`))+   # Modelling turf length (y) as function of rugosity (x)
+  geom_point()+
+  geom_smooth(method = "lm", formula = y ~ x)+
+  xlab("Rugosity")+
+  ggtitle("50cm Quadrat")
+model <- lm(`Turf length (mm)` ~ avg_rugo50, data = rawdata50)
+summary(model)
+
+ggplot(rawdata50, aes(rugo50_A, y = `Turf length (mm)`))+      
+  geom_point()+                                                                 
+  geom_smooth(method = "lm", formula = y ~ x)+
+  xlab("Rugosity on 0-1 scale")+
+  ggtitle("50cm Quadrat")
+model <- lm(`Turf length (mm)` ~ rugo50_A, data = rawdata50)
+summary(model)
+
+ggplot(rawdata100, aes(x = avg_rugo100, y = `Turf length (mm)`))+   # Modelling turf length (y) as function of rugosity (x)
+  geom_point()+
+  geom_smooth(method = "lm", formula = y ~ x)+
+  xlab("Rugosity")+
+  ggtitle("100cm Quadrat")
+model <- lm(`Turf length (mm)` ~ avg_rugo100, data = rawdata100)
+summary(model)
+
+ggplot(rawdata100, aes(rugo100_A, y = `Turf length (mm)`))+     # modelling sediment depth (y) as function
+  geom_point()+                                                                 # of rugosity (x)
+  geom_smooth(method = "lm", formula = y ~ x)+
+  xlab("Rugosity on 0-1 scale")+
+  ggtitle("100cm Quadrat")
+model <- lm(`Turf length (mm)` ~ rugo100_A, data = rawdata100)
+summary(model)
+```
+
+# Rugosity predicting Sediment Depth: 
+
+```{r echo=FALSE, warning=FALSE, error=FALSE}
+ggplot(rawdata25, aes(x = avg_rugo25,  y = `Sediment depth (mm)`))+     
+  geom_point()+                                                               
+  geom_smooth(method = "lm", formula = y ~ x)+
+  xlab("Rugosity")+
+  ggtitle("25cm Quadrat")
+model <- lm(`Sediment depth (mm)` ~ avg_rugo25, data = rawdata25)
+summary(model)
+
+ggplot(rawdata25, aes(rugo25_A, y = `Sediment depth (mm)`))+    
+  geom_point()+                                                                 
+  geom_smooth(method = "lm", formula = y ~ x)+
+  xlab("Rugosity on 0-1 scale")+
+  ggtitle("25cm Quadrat")
+model <- lm(`Sediment depth (mm)` ~ rugo25_A, data = rawdata25)
+summary(model)
+
+ggplot(rawdata50, aes(x = avg_rugo50,  y = `Sediment depth (mm)`))+     
+  geom_point()+                                                                
+  geom_smooth(method = "lm", formula = y ~ x)+
+  xlab("Rugosity")+
+  ggtitle("50cm Quadrat")
+model <- lm(`Sediment depth (mm)` ~ avg_rugo50, data = rawdata50)
+summary(model)
+
+ggplot(rawdata50, aes(rugo50_A, y = `Sediment depth (mm)`))+     
+  geom_point()+                                                                
+  geom_smooth(method = "lm", formula = y ~ x)+
+  xlab("Rugosity on 0-1 scale")+
+  ggtitle("50cm Quadrat")
+model <- lm(`Sediment depth (mm)` ~ rugo50_A, data = rawdata50)
+summary(model)
+
+
+ggplot(rawdata100, aes(x = avg_rugo100,  y = `Sediment depth (mm)`))+   
+  geom_point()+                                                                 
+  geom_smooth(method = "lm", formula = y ~ x)+
+  xlab("Rugosity")+
+  ggtitle("100cm Quadrat")
+model <- lm(`Sediment depth (mm)` ~ avg_rugo100, data = rawdata100)
+summary(model)
+
+ggplot(rawdata100, aes(rugo100_A, y = `Sediment depth (mm)`))+   
+  geom_point()+                                                                
+  geom_smooth(method = "lm", formula = y ~ x)+
+  xlab("Rugosity on 0-1 scale")
+model <- lm(`Sediment depth (mm)` ~ rugo100_A, data = rawdata100)
+summary(model)
+```
+
+
+# Slope predicting Turf Length: 
+
+```{r echo=FALSE, warning=FALSE, error=FALSE}
+ggplot(rawdata25, aes(MEAN, y = `Turf length (mm)`))+          
+  geom_point()+                                                                 
+  geom_smooth(method = "lm", formula = y ~ x)+
+  xlab("Average Slope (degrees)")+
+  ggtitle("25cm Quadrat")
+model <- lm(`Turf length (mm)` ~ MEAN, data = rawdata25)
+summary(model)
+
+ggplot(rawdata50, aes(MEAN, y = `Turf length (mm)`))+      
+  geom_point()+                                                                
+  geom_smooth(method = "lm", formula = y ~ x)+
+  xlab("Average Slope (degrees)")+
+  ggtitle("50cm Quadrat")
+model <- lm(`Turf length (mm)` ~ MEAN, data = rawdata50)
+summary(model)
+
+ggplot(rawdata100, aes(MEAN, y = `Turf length (mm)`))+       
+  geom_point()+                                                                 
+  geom_smooth(method = "lm", formula = y ~ x)+
+  xlab("Average Slope (degrees)")+
+  ggtitle("100cm Quadrat")
+model <- lm(`Turf length (mm)` ~ MEAN, data = rawdata100)
+summary(model)
+
+```
+
+
+# Slope predicting Sediment Depth: 
+
+```{r echo=FALSE, warning=FALSE, error=FALSE}
+ggplot(rawdata25, aes(MEAN, y = `Sediment depth (mm)`))+        
+  geom_point()+                                                                
+  geom_smooth(method = "lm", formula = y ~ x)+
+  xlab("Average Slope (degrees)")+
+  ggtitle("25cm Quadrat")
+model <- lm(`Sediment depth (mm)` ~ MEAN, data = rawdata25)
+summary(model)
+
+
+ggplot(rawdata50, aes(MEAN, y = `Sediment depth (mm)`))+     
+  geom_point()+                                                                 
+  geom_smooth(method = "lm", formula = y ~ x)+
+  xlab("Average Slope (degrees)")+
+  ggtitle("50cm Quadrat")
+model <- lm(`Sediment depth (mm)` ~ MEAN, data = rawdata50)
+summary(model)
+
+ggplot(rawdata100, aes(MEAN, y = `Sediment depth (mm)`))+       
+  geom_point()+                                                                 
+  geom_smooth(method = "lm", formula = y ~ x)+
+  xlab("Average Slope (degrees)")
+model <- lm(`Sediment depth (mm)` ~ MEAN, data = rawdata100)
+summary(model)
+```
+
