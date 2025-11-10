@@ -1,0 +1,465 @@
+---
+title: "Predicting LSAT Hotspots from reefscape metrics at different scales - Preliminary analyses"
+format: html
+---
+
+# Background: 
+I have four sites with anywhere from 12 to 25 data points for LSAT metrics: turf height and sediment depth. It is predicted that these metrics, and spatial extent of LSAT is controlled by the structural complexity of the reef, likely at the micro-scale (<1m^2^). This analysis is exploring the relationship of different morphometrics extracted from the Digital Elevation Model (DEM) created via photogrammetry of different sites across South Florida on LSAT turf length and sediment depth. 
+
+## Viscore Analysis: Rugosity
+In Viscore, I used their rugosity tool to estimate the rugosity at a 25 x 25cm box around each LSAT measurement point. This process was repeated for a 50 x 50cm box and 100 x 100cm box. I used a box with 20 lines and 100 points along each line to get x,y,z data. Rugosity was calculated by dividing the surface area (using z depth data) by the planar area (25cm, 50cm or 100cm, respectively). 
+
+## GIS Analysis: Surface Area to Planar Area Ratio, Profile Curvatures, Topographic Position Index
+In GIS, I repeated the process of drawing boxes around the points where LSAT data was collected and used those polygon layers to extract the below values as means of the area scales. 
+
+**Slope -** The average angle within each of the polygon areas measured in decimal degrees. A slope at 0 is completely flat, while a slope at 90 is vertical. 
+
+**Surface Area to Planar Area Ratio (SAPR) -** The GIS version of calculating rugosity. Instead of drawing a set of lines within a box as in Viscore, the surface area within each scaled polygon layer was divided by the 2D planar area. 
+
+**Profile Curvatures: Standard -** The second derivative of the DEM surface. This indicates horizontal AND vertical concave (negative values) or convex forms (positive values). This tells us the direction that water or sediment would flow naturally downhill. This can capture micro-trends of sediment accumulation in the reefscape. 
+
+**Profile Curvatures: Planform -** This curvature method measures only the curvature of the terrain perpendicular to the direction of steepest slope. It indicates convex curvature, meaning that there is curvature bulging outward (positive planform curvature). Concave curvature (negative values) indicates that the surface is curving inwards, causing convergence of sediment/water flow. 
+
+**Topographic Position Index (TPI) -** A measure of the relative elevation of a location compared to the average elevation of its surrounding neighborhood. Positive values indicate a position is higher than it's surroundings, while negative values indicate a location is lower. Values near zero are flat areas. 
+
+# Effect of Spatial Scale of Rugosity (Viscore) and Slope (GIS) on LSAT metrics
+By pooling data across sites and examining model fits separately for each scale (25 cm, 50 cm, 100 cm), we aim to identify which spatial scale best captures the drivers of sediment accumulation and turf growth on the reef.
+
+```{r load_data, echo=FALSE, include=FALSE}
+library(tidyverse)
+library(ggpubr)
+library(ggplot2)
+library(dplyr)
+library(purrr)
+
+master <- read_csv("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/toUse/LSAT/master_LSAT_dataset.csv")
+```
+## Response Variable: Turf Length
+
+```{r}
+master$scale_cm <- factor(master$scale_cm, levels = c(25, 50, 100))
+
+
+# fit model
+all_sites_scale <- lm(
+  turf_length ~ rugo_mean * scale_cm + slope_mean * scale_cm,
+  data = master
+)
+
+summary(all_sites_scale)
+
+# prediction grid: vary rugosity, hold slope constant, include all 3 scales
+newdata_rugo <- expand.grid(
+  rugo_mean = seq(min(master$rugo_mean, na.rm = TRUE),
+                  max(master$rugo_mean, na.rm = TRUE),
+                  length.out = 100),
+  slope_mean = mean(master$slope_mean, na.rm = TRUE),
+  scale_cm = factor(c(25, 50, 100), levels = c(25, 50, 100))
+)
+
+# correct model name here
+newdata_rugo$pred <- predict(all_sites_scale, newdata = newdata_rugo)
+
+# plot
+ggplot(master, aes(x = rugo_mean, y = turf_length)) +
+  geom_point(alpha = 0.3, color = "gray50") +
+  geom_line(data = newdata_rugo,
+            aes(y = pred, color = scale_cm),
+            size = 1.2) +
+  theme_bw() +
+  labs(title = "Effect of Rugosity on Turf Across Scales",
+       x = "Rugosity",
+       y = "Turf Length",
+       color = "Scale (cm)")
+
+# prediction grid: vary slope, hold rugosity constant, include all 3 scales
+newdata_slope <- expand.grid(
+  slope_mean = seq(min(master$slope_mean, na.rm = TRUE),
+                   max(master$slope_mean, na.rm = TRUE),
+                   length.out = 100),
+  rugo_mean = mean(master$rugo_mean, na.rm = TRUE),
+  scale_cm = factor(c(25, 50, 100), levels = c(25, 50, 100))
+)
+
+# predicted values
+newdata_slope$pred <- predict(all_sites_scale, newdata = newdata_slope)
+
+# plot
+ggplot(master, aes(x = slope_mean, y = turf_length)) +
+  geom_point(alpha = 0.3, color = "gray50") +
+  geom_line(data = newdata_slope,
+            aes(y = pred, color = scale_cm),
+            size = 1.2) +
+  theme_bw() +
+  labs(title = "Effect of Slope on Turf Across Scales",
+       x = "Slope",
+       y = "Turf Length",
+       color = "Scale (cm)")
+```
+
+
+## Response Variable: Sediment Depth
+
+```{r}
+# fit model
+all_sites_scale_sediment <- lm(
+  sediment_depth ~ rugo_mean * scale_cm + slope_mean * scale_cm,
+  data = master
+)
+
+summary(all_sites_scale_sediment)
+
+# prediction grid: vary rugosity, hold slope constant, include all 3 scales
+newdata_rugo <- expand.grid(
+  rugo_mean = seq(min(master$rugo_mean, na.rm = TRUE),
+                  max(master$rugo_mean, na.rm = TRUE),
+                  length.out = 100),
+  slope_mean = mean(master$slope_mean, na.rm = TRUE),
+  scale_cm = factor(c(25, 50, 100), levels = c(25, 50, 100))
+)
+
+# correct model name here
+newdata_rugo$pred <- predict(all_sites_scale_sediment, newdata = newdata_rugo)
+
+# plot
+ggplot(master, aes(x = rugo_mean, y = sediment_depth)) +
+  geom_point(alpha = 0.3, color = "gray50") +
+  geom_line(data = newdata_rugo,
+            aes(y = pred, color = scale_cm),
+            size = 1.2) +
+  theme_bw() +
+  labs(title = "Effect of Rugosity on Sediment Across Scales",
+       x = "Rugosity",
+       y = "Sediment Depth",
+       color = "Scale (cm)")
+
+# prediction grid: vary slope, hold rugosity constant, include all 3 scales
+newdata_slope <- expand.grid(
+  slope_mean = seq(min(master$slope_mean, na.rm = TRUE),
+                   max(master$slope_mean, na.rm = TRUE),
+                   length.out = 100),
+  rugo_mean = mean(master$rugo_mean, na.rm = TRUE),
+  scale_cm = factor(c(25, 50, 100), levels = c(25, 50, 100))
+)
+
+# predicted values
+newdata_slope$pred <- predict(all_sites_scale_sediment, newdata = newdata_slope)
+
+# plot
+ggplot(master, aes(x = slope_mean, y = sediment_depth)) +
+  geom_point(alpha = 0.3, color = "gray50") +
+  geom_line(data = newdata_slope,
+            aes(y = pred, color = scale_cm),
+            size = 1.2) +
+  theme_bw() +
+  labs(title = "Effect of Slope on Sediment Across Scales",
+       x = "Slope",
+       y = "Sediment Depth",
+       color = "Scale (cm)")
+
+
+
+```
+
+# Single Predictor GLMs: 
+
+```{r}
+num_vars <- master %>% select(rugo_mean, slope_mean, sapr, std_curve, plan_curve, tpi)
+
+num_vars %>%
+  gather(variable, value) %>%
+  ggplot(aes(value)) +
+  geom_histogram(bins = 30) +
+  facet_wrap(~ variable, scales = "free") +
+  theme_bw()
+```
+
+
+## Rugosity
+
+```{r}
+# Turf Length -----------------------------------------
+mod_rugo <- glm(turf_length ~ rugo_mean * scale_cm, data = master, family = Gamma(link = "log"))
+summary(mod_rugo)
+
+newdata_rugo <- expand.grid(
+  rugo_mean = seq(min(master$rugo_mean, na.rm = TRUE),
+                  max(master$rugo_mean, na.rm = TRUE),
+                  length.out = 100),
+  scale_cm = levels(master$scale_cm)
+)
+
+newdata_rugo$pred <- predict(mod_rugo, newdata = newdata_rugo, type = "response")
+
+ggplot(master, aes(x = rugo_mean, y = turf_length)) +
+  geom_point(alpha = 0.3, color = "gray50") +
+  geom_line(data = newdata_rugo, aes(y = pred, color = scale_cm), size = 1.2) +
+  theme_bw() +
+  labs(title = "Effect of Rugosity on Turf Across Scales",
+       x = "Rugosity",
+       y = "Turf Length",
+       color = "Scale (cm)")
+
+# Sediment Depth ------------------------------------
+mod_rugo_sd <- glm(sediment_depth ~ rugo_mean * scale_cm, data = master, family = Gamma(link = "log"))
+summary(mod_rugo_sd)
+
+newdata_rugo_sd <- expand.grid(
+  rugo_mean = seq(min(master$rugo_mean, na.rm = TRUE), max(master$rugo_mean, na.rm = TRUE), length.out = 100),
+  scale_cm = levels(master$scale_cm)
+)
+
+newdata_rugo_sd$pred <- predict(mod_rugo_sd, newdata = newdata_rugo_sd, type = "response")
+
+ggplot(master, aes(x = rugo_mean, y = sediment_depth)) +
+  geom_point(alpha = 0.3, color = "gray50") +
+  geom_line(data = newdata_rugo_sd, aes(y = pred, color = scale_cm), size = 1.2) +
+  theme_bw() +
+  labs(title = "Effect of Rugosity on Sediment Depth Across Scales",
+       x = "Rugosity",
+       y = "Sediment Depth",
+       color = "Scale (cm)")
+
+```
+
+## Slope 
+
+```{r}
+# Turf Length ---------------------------------------------------
+mod_slope <- glm(turf_length ~ slope_mean * scale_cm, data = master, family = Gamma(link = "log"))
+summary(mod_slope)
+
+newdata_slope <- expand.grid(
+  slope_mean = seq(min(master$slope_mean, na.rm = TRUE),
+                   max(master$slope_mean, na.rm = TRUE),
+                   length.out = 100),
+  scale_cm = levels(master$scale_cm)
+)
+
+newdata_slope$pred <- predict(mod_slope, newdata = newdata_slope, type = "response")
+
+ggplot(master, aes(x = slope_mean, y = turf_length)) +
+  geom_point(alpha = 0.3, color = "gray50") +
+  geom_line(data = newdata_slope, aes(y = pred, color = scale_cm), size = 1.2) +
+  theme_bw() +
+  labs(title = "Effect of Slope on Turf Across Scales",
+       x = "Slope Mean",
+       y = "Turf Length",
+       color = "Scale (cm)")
+
+# Sediment Depth -------------------------------------------------------
+mod_slope_sd <- glm(sediment_depth ~ slope_mean * scale_cm, data = master, family = Gamma(link = "log"))
+summary(mod_slope_sd)
+
+newdata_slope_sd <- expand.grid(
+  slope_mean = seq(min(master$slope_mean, na.rm = TRUE), max(master$slope_mean, na.rm = TRUE), length.out = 100),
+  scale_cm = levels(master$scale_cm)
+)
+
+newdata_slope_sd$pred <- predict(mod_slope_sd, newdata = newdata_slope_sd, type = "response")
+
+ggplot(master, aes(x = slope_mean, y = sediment_depth)) +
+  geom_point(alpha = 0.3, color = "gray50") +
+  geom_line(data = newdata_slope_sd, aes(y = pred, color = scale_cm), size = 1.2) +
+  theme_bw() +
+  labs(title = "Effect of Slope on Sediment Depth Across Scales",
+       x = "Slope Mean",
+       y = "Sediment Depth",
+       color = "Scale (cm)")
+
+```
+
+
+## SAPR
+
+```{r}
+# Turf Length ---------------------------------------------------
+mod_sapr <- glm(turf_length ~ sapr * scale_cm, data = master, family = Gamma(link = "log"))
+summary(mod_sapr)
+
+newdata_sapr <- expand.grid(
+  sapr = seq(min(master$sapr, na.rm = TRUE),
+             max(master$sapr, na.rm = TRUE),
+             length.out = 100),
+  scale_cm = levels(master$scale_cm)
+)
+
+newdata_sapr$pred <- predict(mod_sapr, newdata = newdata_sapr, type = "response")
+
+ggplot(master, aes(x = sapr, y = turf_length)) +
+  geom_point(alpha = 0.3, color = "gray50") +
+  geom_line(data = newdata_sapr, aes(y = pred, color = scale_cm), size = 1.2) +
+  theme_bw() +
+  labs(title = "Effect of SAPR on Turf Across Scales",
+       x = "SAPR",
+       y = "Turf Length",
+       color = "Scale (cm)")
+
+# Sediment Depth --------------------------------------------------------
+mod_sapr_sd <- glm(sediment_depth ~ sapr * scale_cm, data = master, family = Gamma(link = "log"))
+summary(mod_sapr_sd)
+
+newdata_sapr_sd <- expand.grid(
+  sapr = seq(min(master$sapr, na.rm = TRUE), max(master$sapr, na.rm = TRUE), length.out = 100),
+  scale_cm = levels(master$scale_cm)
+)
+
+newdata_sapr_sd$pred <- predict(mod_sapr_sd, newdata = newdata_sapr_sd, type = "response")
+
+ggplot(master, aes(x = sapr, y = sediment_depth)) +
+  geom_point(alpha = 0.3, color = "gray50") +
+  geom_line(data = newdata_sapr_sd, aes(y = pred, color = scale_cm), size = 1.2) +
+  theme_bw() +
+  labs(title = "Effect of SAPR on Sediment Depth Across Scales",
+       x = "Surface-Area-to-Planar-Area Ratio (SAPR)",
+       y = "Sediment Depth",
+       color = "Scale (cm)")
+
+
+```
+
+
+## Standard Curvature 
+
+```{r}
+# Turf Length ---------------------------------------------------
+mod_std_curve <- glm(turf_length ~ std_curve * scale_cm, data = master, family = Gamma(link = "log"))
+summary(mod_std_curve)
+
+newdata_std_curve <- expand.grid(
+  std_curve = seq(min(master$std_curve, na.rm = TRUE),
+                  max(master$std_curve, na.rm = TRUE),
+                  length.out = 100),
+  scale_cm = levels(master$scale_cm)
+)
+
+newdata_std_curve$pred <- predict(mod_std_curve, newdata = newdata_std_curve, type = "response")
+
+ggplot(master, aes(x = std_curve, y = turf_length)) +
+  geom_point(alpha = 0.3, color = "gray50") +
+  geom_line(data = newdata_std_curve, aes(y = pred, color = scale_cm), size = 1.2) +
+  theme_bw() +
+  labs(title = "Effect of Standard Curvature on Turf Across Scales",
+       x = "Standard Curvature",
+       y = "Turf Length",
+       color = "Scale (cm)")
+
+# Sediment Depth ------------------------------------------------------
+mod_stdcurve_sd <- glm(sediment_depth ~ std_curve * scale_cm, data = master, family = Gamma(link = "log"))
+summary(mod_stdcurve_sd)
+
+newdata_stdcurve_sd <- expand.grid(
+  std_curve = seq(min(master$std_curve, na.rm = TRUE), max(master$std_curve, na.rm = TRUE), length.out = 100),
+  scale_cm = levels(master$scale_cm)
+)
+
+newdata_stdcurve_sd$pred <- predict(mod_stdcurve_sd, newdata = newdata_stdcurve_sd, type = "response")
+
+ggplot(master, aes(x = std_curve, y = sediment_depth)) +
+  geom_point(alpha = 0.3, color = "gray50") +
+  geom_line(data = newdata_stdcurve_sd, aes(y = pred, color = scale_cm), size = 1.2) +
+  theme_bw() +
+  labs(title = "Effect of Standard Curvature on Sediment Depth Across Scales",
+       x = "Standard Curvature",
+       y = "Sediment Depth",
+       color = "Scale (cm)")
+
+
+```
+
+
+## Planform Curvature
+
+```{r}
+# Turf Length ---------------------------------------------------
+mod_plan_curve <- glm(turf_length ~ plan_curve * scale_cm, data = master, family = Gamma(link = "log"))
+summary(mod_plan_curve)
+
+newdata_plan_curve <- expand.grid(
+  plan_curve = seq(min(master$plan_curve, na.rm = TRUE),
+                   max(master$plan_curve, na.rm = TRUE),
+                   length.out = 100),
+  scale_cm = levels(master$scale_cm)
+)
+
+newdata_plan_curve$pred <- predict(mod_plan_curve, newdata = newdata_plan_curve, type = "response")
+
+ggplot(master, aes(x = plan_curve, y = turf_length)) +
+  geom_point(alpha = 0.3, color = "gray50") +
+  geom_line(data = newdata_plan_curve, aes(y = pred, color = scale_cm), size = 1.2) +
+  theme_bw() +
+  labs(title = "Effect of Plan Curvature on Turf Across Scales",
+       x = "Plan Curvature",
+       y = "Turf Length",
+       color = "Scale (cm)")
+
+# Sediment Depth ------------------------------------------------------
+mod_plancurve_sd <- glm(sediment_depth ~ plan_curve * scale_cm, data = master, family = Gamma(link = "log"))
+summary(mod_plancurve_sd)
+
+newdata_plancurve_sd <- expand.grid(
+  plan_curve = seq(min(master$plan_curve, na.rm = TRUE), max(master$plan_curve, na.rm = TRUE), length.out = 100),
+  scale_cm = levels(master$scale_cm)
+)
+
+newdata_plancurve_sd$pred <- predict(mod_plancurve_sd, newdata = newdata_plancurve_sd, type = "response")
+
+ggplot(master, aes(x = plan_curve, y = sediment_depth)) +
+  geom_point(alpha = 0.3, color = "gray50") +
+  geom_line(data = newdata_plancurve_sd, aes(y = pred, color = scale_cm), size = 1.2) +
+  theme_bw() +
+  labs(title = "Effect of Plan Curvature on Sediment Depth Across Scales",
+       x = "Plan Curvature",
+       y = "Sediment Depth",
+       color = "Scale (cm)")
+
+
+```
+
+
+## Topographic Position Index
+
+```{r}
+# Turf Length ---------------------------------------------------
+mod_tpi <- glm(turf_length ~ tpi * scale_cm, data = master, family = Gamma(link = "log"))
+summary(mod_tpi)
+
+newdata_tpi <- expand.grid(
+  tpi = seq(min(master$tpi, na.rm = TRUE),
+            max(master$tpi, na.rm = TRUE),
+            length.out = 100),
+  scale_cm = levels(master$scale_cm)
+)
+
+newdata_tpi$pred <- predict(mod_tpi, newdata = newdata_tpi, type = "response")
+
+ggplot(master, aes(x = tpi, y = turf_length)) +
+  geom_point(alpha = 0.3, color = "gray50") +
+  geom_line(data = newdata_tpi, aes(y = pred, color = scale_cm), size = 1.2) +
+  theme_bw() +
+  labs(title = "Effect of TPI on Turf Across Scales",
+       x = "Topographic Position Index (TPI)",
+       y = "Turf Length",
+       color = "Scale (cm)")
+
+# Sediment Depth --------------------------------------------------------
+mod_tpi_sd <- glm(sediment_depth ~ tpi * scale_cm, data = master, family = Gamma(link = "log"))
+summary(mod_tpi_sd)
+
+newdata_tpi_sd <- expand.grid(
+  tpi = seq(min(master$tpi, na.rm = TRUE), max(master$tpi, na.rm = TRUE), length.out = 100),
+  scale_cm = levels(master$scale_cm)
+)
+
+newdata_tpi_sd$pred <- predict(mod_tpi_sd, newdata = newdata_tpi_sd, type = "response")
+
+ggplot(master, aes(x = tpi, y = sediment_depth)) +
+  geom_point(alpha = 0.3, color = "gray50") +
+  geom_line(data = newdata_tpi_sd, aes(y = pred, color = scale_cm), size = 1.2) +
+  theme_bw() +
+  labs(title = "Effect of Topographic Position Index (TPI) on Sediment Depth Across Scales",
+       x = "Topographic Position Index (TPI)",
+       y = "Sediment Depth",
+       color = "Scale (cm)")
+```
+

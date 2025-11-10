@@ -20,7 +20,7 @@ data_100cm <- list()
 
 # fetching the csvs for 25cm microquadrat: 
 for (i in 1:n_files) {
-  file_name <- paste0("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/raw/LSAT/2. Viscore rugosity metrics/Fortlauderdale/FTL_20250721/25cm box/", "p", i, ".csv")
+  file_name <- paste0("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/raw/LSAT/2. Viscore rugosity metrics/Southcanyon/SC_20231020/25cm box/", "p", i, ".csv")
   data_25cm[[i]] <- read.csv(file_name)
 }
 
@@ -33,7 +33,7 @@ for (i in 1:n_files) {
 
 # 50cm microquadrat: 
 for (i in 1:n_files) {
-  file_name <- paste0("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/raw/LSAT/2. Viscore rugosity metrics/Fortlauderdale/FTL_20250721/50cm box/", "p", i, ".csv")
+  file_name <- paste0("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/raw/LSAT/2. Viscore rugosity metrics/Southcanyon/SC_20231020/50cm box/", "p", i, ".csv")
   data_50cm[[i]] <- read.csv(file_name)
 }
 
@@ -45,7 +45,7 @@ for (i in 1:n_files) {
 
 # 100cm microquadrat: 
 for (i in 1:n_files) {
-  file_name <- paste0("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/raw/LSAT/2. Viscore rugosity metrics/Fortlauderdale/FTL_20250721/100cm box/", "p", i, ".csv")
+  file_name <- paste0("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/raw/LSAT/2. Viscore rugosity metrics/Southcanyon/SC_20231020/100cm box/", "p", i, ".csv")
   data_100cm[[i]] <- read.csv(file_name)
 }
 
@@ -92,7 +92,7 @@ for (i in 1:length(data_25cm)) {
 
 
 rugosity_25cm <- bind_rows(rugo25, .id = "nail")
-#write.csv(FINAL_25_rugo, file="25_rugo.csv")
+write.csv(rugosity_25cm, file="SC_20231020_25cm_rugo.csv")
 
 
 #
@@ -123,7 +123,7 @@ for (i in 1:length(data_50cm)) {
 
 
 rugosity_50cm <- bind_rows(rugo50, .id = "nail")
-#write.csv(FINAL_50_rugo, file="50_rugo.csv")  #If I want to export these files, but not necessary
+write.csv(rugosity_50cm, file="SC_20231020_50cm_rugo.csv")  
 
 #
 # 100cm: 
@@ -152,7 +152,8 @@ for (i in 1:length(data_100cm)) {
 
 
 rugosity_100cm <- bind_rows(rugo100, .id = "nail")
-# write.csv(FINAL_100_rugo, file="100_rugo.csv")
+write.csv(rugosity_100cm, file="SC_20231020_100cm_rugo.csv")  
+
 
 
 
@@ -293,4 +294,55 @@ write.csv(FINAL_Alain100, file="100_rugo_Alain.csv")
 #    avg_point_range = mean(point_range)
 #  )
 
+# -------------------------------------------------------------------------
+
+library(tidyverse)
+library(ggplot2)
+
+get_centroids_from_folder <- function(folder_path, scale_cm, site_name) {
+  
+  files <- list.files(folder_path, pattern = "\\.csv$", full.names = TRUE)
+  
+  map_dfr(files, function(file) {
+    nail_id <- tools::file_path_sans_ext(basename(file))  # gets 'p22.1' etc
+    
+    df <- read_csv(file, col_names = c("spacing", "transect", "sample", "x", "y", "z"),
+                   show_col_types = FALSE)
+    
+    df %>%
+      summarise(
+        mean_x = mean(x, na.rm=TRUE),
+        mean_y = mean(y, na.rm=TRUE)
+      ) %>%
+      mutate(
+        nail = nail_id,
+        scale_cm = scale_cm,
+        site = site_name
+      )
+  })
+}
+
+folder_50cm <- "C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/raw/LSAT/2. Viscore rugosity metrics/Fortlauderdale/FTL_20250721/50cm box"
+
+centroids_50 <- get_centroids_from_folder(folder_50cm, 50, "FortLauderdale")
+
+folder_25cm <- "C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/raw/LSAT/2. Viscore rugosity metrics/Fortlauderdale/FTL_20250721/25cm box"
+folder_100cm <- "C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/raw/LSAT/2. Viscore rugosity metrics/Fortlauderdale/FTL_20250721/100cm box"
+
+centroids_25 <- get_centroids_from_folder(folder_25cm, 25, "FortLauderdale")
+centroids_100 <- get_centroids_from_folder(folder_100cm, 100, "FortLauderdale")
+
+centroids_all <- bind_rows(centroids_25, centroids_50, centroids_100)
+
+ggplot(centroids_all, aes(x = mean_x, y = mean_y, color = as.factor(scale_cm), shape = as.factor(scale_cm))) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_text(aes(label = nail), vjust = -1, size = 3) +
+  labs(title = "Centroid positions of LSAT boxes by scale (Fort Lauderdale)",
+       x = "X coordinate",
+       y = "Y coordinate",
+       color = "Scale (cm)",
+       shape = "Scale (cm)") +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  coord_fixed(ratio = 0.4)
 
