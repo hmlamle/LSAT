@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.29">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>LSAT Modelling Round 2 - Outliers and Data questionability</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="models_round2_files/libs/clipboard/clipboard.min.js"></script>
+<script src="models_round2_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="models_round2_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="models_round2_files/libs/quarto-html/popper.min.js"></script>
+<script src="models_round2_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="models_round2_files/libs/quarto-html/anchor.min.js"></script>
+<link href="models_round2_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="models_round2_files/libs/quarto-html/quarto-syntax-highlighting-0815c480559380816a4d1ea211a47e91.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="models_round2_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="models_round2_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="models_round2_files/libs/bootstrap/bootstrap-bb462d781dde1847d9e3ccf7736099dd.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">LSAT Modelling Round 2 - Outliers and Data questionability</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>From the preliminary models sent Sunday, 11/9, here was the feedback from Rolo:</p>
+<ol type="1">
+<li>Check outliers, confirm if true and remove,</li>
+<li>standardize all metrics</li>
+<li>Run three separate models with all of the metrics but varying the scale, then compare the best model based on AICc</li>
+<li>After selecting best model, simplify using the dredge function</li>
+<li>Fit the best most parsimonious model</li>
+</ol>
+<section id="identify-and-remove-outliers" class="level1">
+<h1>Identify and remove outliers:</h1>
+<p>I plotted box plots of each predicor variable (combining sites and scales) to determine if outliers are present and where. This data may look a bit different from the original file I sent because at that time I was still also finishing up processing the NNDR site in Viscore and GIS and didn’t include those in the first round I sent.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>vars_of_interest <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"rugo_mean"</span>, <span class="st">"sapr"</span>, <span class="st">"std_curve"</span>, <span class="st">"plan_curve"</span>,</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"slope_mean"</span>, <span class="st">"tpi"</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (v <span class="cf">in</span> vars_of_interest) {</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  p <span class="ot">&lt;-</span> master <span class="sc">%&gt;%</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">y =</span> .data[[v]])) <span class="sc">+</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_boxplot</span>(<span class="at">fill =</span> <span class="st">"skyblue"</span>, <span class="at">alpha =</span> <span class="fl">0.7</span>, <span class="at">outlier.color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_bw</span>() <span class="sc">+</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggtitle</span>(<span class="fu">paste</span>(v, <span class="st">" summary"</span>))</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(p)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 1 row containing non-finite outside the scale range
+(`stat_boxplot()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="models_round2_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="models_round2_files/figure-html/unnamed-chunk-2-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="models_round2_files/figure-html/unnamed-chunk-2-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="models_round2_files/figure-html/unnamed-chunk-2-4.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="models_round2_files/figure-html/unnamed-chunk-2-5.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="models_round2_files/figure-html/unnamed-chunk-2-6.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Okay, so there’s quite a few statistical outliers, but are they “true”?</p>
+<p>Mean rugosity:</p>
+<ul>
+<li>I only checked the top most point. It is from NNDR, after inspecting the DEM I don’t think this is a “true” outlier, it just is that rugose at that area. There is a dead coral head that goes straight up into the air in the area where rugosity was being calculated and there isn’t any crazy points in the point cloud that are super high up (that I can see) that would inflate rugosity.</li>
+</ul>
+<p>Surface Area to Planar Area Ratio (SAPR):</p>
+<ul>
+<li><p>The 30 top highest points are from the NNDR site, which is a spur and groove reef with a difference of 4m between the sand and the top of the spur. Thus it’s going to be a lot more rugose than the other three sites which are relatively flat.</p></li>
+<li><p>However, when looking at the top six points in the boxplot, it is the 100cm, 50cm and 25cm SAPR for LSAT points 2 and 4. I’m attaching a screenshot of what the boxes look like, but I don’t know if I would consider this an outlier or not. The reason why it has such an inflated SAPR value is because it includes overhang from the top of the spur (see below image, the purple seafloor, blue “shelf” that’s higher and hanging over, similarly with the green and yellow/red areas).</p></li>
+</ul>
+<p><img src="models_round2_files/GIS_overhang_example.png" class="img-fluid"></p>
+<p>Standard Curve:</p>
+<ul>
+<li><p>The highest and lowest point in the Standard Curve boxplot comes from NNDR LSAT points 5 and 6. These two data points I think could be true outliers. You can see in the images below in the DEM that there is weird sporadic deep patches (dark purple) where other parts of the DEM would have a more gradual transition to deeper sites since there isn’t an overhang here to cause a quick dropoff.</p></li>
+<li><p>I think this part of the DEM is not very good and perhaps should not be used, at least for SAPR.</p></li>
+</ul>
+<p><img src="models_round2_files/gis_incomplete_dem.png" class="img-fluid"></p>
+<p>Planform Curve:</p>
+<ul>
+<li>The 6 lowest numbers are from the same place as the outliers for standard curve, LSAT points 4, 5, and 6 from NNDR where the DEM may be spotty and unreliable. I think these could also be true outliers.</li>
+</ul>
+<p>Topographic Position Index (TPI):</p>
+<ul>
+<li>The lowest point in the TPI boxplot is also coming from NNDR, LSAT point 6 which, again, may just be a bad stitching and cannot be used.</li>
+</ul>
+<section id="help-with-determining-which-outliers-to-keep-and-which-to-remove-would-be-appreciated" class="level3">
+<h3 class="anchored" data-anchor-id="help-with-determining-which-outliers-to-keep-and-which-to-remove-would-be-appreciated"><strong>Help with determining which outliers to keep and which to remove would be appreciated!</strong></h3>
+</section>
+<section id="colinear-variables" class="level2">
+<h2 class="anchored" data-anchor-id="colinear-variables">Colinear Variables</h2>
+<p>In addition to looking for outliers I also looked for variables that are colinear. It appears that TPI and standard curve are colinear… I was expecting that SAPR and Rugosity (from viscore) would be very colinear too, but to my suspicion, they are not… so I just want to bring that up to you as well..</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>num_vars <span class="ot">&lt;-</span> master <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(sediment_depth, turf_length, rugo_mean, slope_mean, sapr, std_curve, plan_curve, tpi)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>ggcor <span class="ot">&lt;-</span> <span class="fu">ggcorr</span>(num_vars, <span class="at">label =</span> <span class="cn">TRUE</span>, <span class="at">label_round =</span> <span class="dv">2</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(ggcor)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="models_round2_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>df25 <span class="ot">&lt;-</span> master <span class="sc">%&gt;%</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(scale_cm <span class="sc">==</span> <span class="st">"25"</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>df50 <span class="ot">&lt;-</span> master <span class="sc">%&gt;%</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(scale_cm <span class="sc">==</span> <span class="st">"50"</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>df100 <span class="ot">&lt;-</span> master <span class="sc">%&gt;%</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(scale_cm <span class="sc">==</span> <span class="st">"100"</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data =</span> df25, <span class="fu">aes</span>(<span class="at">x =</span> rugo_mean, <span class="at">y =</span> sapr)) <span class="sc">+</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>()  </span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>p2 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data =</span> df50, <span class="fu">aes</span>(<span class="at">x =</span> rugo_mean, <span class="at">y =</span> sapr)) <span class="sc">+</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() </span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>p3 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data =</span> df100, <span class="fu">aes</span>(<span class="at">x =</span> rugo_mean, <span class="at">y =</span> sapr)) <span class="sc">+</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() </span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>p1 <span class="sc">|</span> p2  <span class="sc">|</span> p3</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 1 row containing missing values or values outside the scale range
+(`geom_line()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="models_round2_files/figure-html/unnamed-chunk-3-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="standardize-all-metrics" class="level1">
+<h1>2. standardize all metrics</h1>
+<p>I wanted to present you with the data for the outliers so that I could have a bit more guidance moving forward about which points to keep and which to remove. I did end up continuing to run the models with <strong>ALL outliers removed (clean dataset)</strong>, and <strong>ALL of the outliers kept (dirty dataset)</strong> so that I could just show you some results and I can re-run them depending on how to handle outliers.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>clean_master <span class="ot">&lt;-</span> master <span class="sc">%&gt;%</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">between</span>(tpi, <span class="fu">quantile</span>(tpi, <span class="fl">0.01</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="fu">quantile</span>(tpi, <span class="fl">0.99</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">between</span>(std_curve, <span class="fu">quantile</span>(std_curve, <span class="fl">0.01</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="fu">quantile</span>(std_curve, <span class="fl">0.99</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">between</span>(plan_curve, <span class="fu">quantile</span>(plan_curve, <span class="fl">0.01</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="fu">quantile</span>(plan_curve, <span class="fl">0.99</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">between</span>(rugo_mean, <span class="fu">quantile</span>(rugo_mean, <span class="fl">0.01</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="fu">quantile</span>(rugo_mean, <span class="fl">0.99</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">between</span>(slope_mean, <span class="fu">quantile</span>(tpi, <span class="fl">0.01</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="fu">quantile</span>(slope_mean, <span class="fl">0.99</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">between</span>(sapr, <span class="fu">quantile</span>(sapr, <span class="fl">0.01</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="fu">quantile</span>(sapr, <span class="fl">0.99</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>scaled_master <span class="ot">&lt;-</span> clean_master <span class="sc">%&gt;%</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">c</span>(rugo_mean, slope_mean, sapr, std_curve, plan_curve, tpi), scale))</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>scaled_not_clean <span class="ot">&lt;-</span> master <span class="sc">%&gt;%</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">c</span>(rugo_mean, slope_mean, sapr, std_curve, plan_curve, tpi), scale))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="run-three-separate-models-with-all-of-the-metrics-but-varying-the-scale-then-compare-the-best-model-based-on-aicc" class="level1">
+<h1>3. Run three separate models with all of the metrics but varying the scale, then compare the best model based on AICc</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>d25  <span class="ot">&lt;-</span> scaled_master <span class="sc">%&gt;%</span> <span class="fu">filter</span>(scale_cm <span class="sc">==</span> <span class="st">"25"</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>d50  <span class="ot">&lt;-</span> scaled_master <span class="sc">%&gt;%</span> <span class="fu">filter</span>(scale_cm <span class="sc">==</span> <span class="st">"50"</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>d100 <span class="ot">&lt;-</span> scaled_master <span class="sc">%&gt;%</span> <span class="fu">filter</span>(scale_cm <span class="sc">==</span> <span class="st">"100"</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>df25_outliers <span class="ot">&lt;-</span> scaled_not_clean <span class="sc">%&gt;%</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(scale_cm <span class="sc">==</span> <span class="st">"25"</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>df50_outliers <span class="ot">&lt;-</span> scaled_not_clean <span class="sc">%&gt;%</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(scale_cm <span class="sc">==</span> <span class="st">"50"</span>)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>df100_outliers <span class="ot">&lt;-</span> scaled_not_clean <span class="sc">%&gt;%</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(scale_cm <span class="sc">==</span> <span class="st">"100"</span>)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Making lists for each of the components:</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>datasets <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">clean =</span> scaled_master, <span class="at">dirty =</span> scaled_not_clean)</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>responses <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"turf_length"</span>, <span class="st">"sediment_depth"</span>)</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>scales <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"25"</span>, <span class="st">"50"</span>, <span class="st">"100"</span>)</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Create all combinations in a tibble</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>model_grid <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">cross_df</span>(<span class="fu">list</span>(</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">dataset =</span> <span class="fu">names</span>(datasets),</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">response =</span> responses,</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">scale =</span> scales</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: `cross_df()` was deprecated in purrr 1.0.0.
+ℹ Please use `tidyr::expand_grid()` instead.
+ℹ See &lt;https://github.com/tidyverse/purrr/issues/768&gt;.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Function to fit model for each combination</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>fit_nb_glm <span class="ot">&lt;-</span> <span class="cf">function</span>(dataset_name, response_var, scale_val) {</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  data <span class="ot">&lt;-</span> datasets[[dataset_name]] <span class="sc">%&gt;%</span> <span class="fu">filter</span>(scale_cm <span class="sc">==</span> scale_val)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Build formula dynamically</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  formula <span class="ot">&lt;-</span> <span class="fu">as.formula</span>(<span class="fu">paste0</span>(response_var, <span class="st">" ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi"</span>))</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Fit Negative Binomial GLM (MASS package)</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  mod <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    MASS<span class="sc">::</span><span class="fu">glm.nb</span>(formula, <span class="at">data =</span> data),</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>      <span class="fu">message</span>(glue<span class="sc">::</span><span class="fu">glue</span>(<span class="st">"Model failed for {dataset_name}, {response_var}, scale {scale_val}: {e$message}"</span>))</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.null</span>(mod)) <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Tidy model output for quick summary</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>  tidy_mod <span class="ot">&lt;-</span> broom<span class="sc">::</span><span class="fu">tidy</span>(mod)</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>  glance_mod <span class="ot">&lt;-</span> broom<span class="sc">::</span><span class="fu">glance</span>(mod)</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Return list with model and summaries</span></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">model =</span> mod,</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">tidy =</span> tidy_mod,</span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">glance =</span> glance_mod,</span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">dataset =</span> dataset_name,</span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">response =</span> response_var,</span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">scale =</span> scale_val,</span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">n =</span> <span class="fu">nrow</span>(data)</span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit models for all combinations</span></span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>model_results <span class="ot">&lt;-</span> <span class="fu">pmap</span>(model_grid, fit_nb_glm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 0.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 0.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.300000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 0.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 0.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.300000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.500000
+Warning in dpois(y, mu, log = TRUE): non-integer x = 1.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in MASS::glm.nb(formula, data = data): alternation limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 0.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.300000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 0.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.300000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Remove failed fits (NULLs)</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>model_results <span class="ot">&lt;-</span> <span class="fu">compact</span>(model_results)</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Optional: Convert results to a dataframe with summaries only for easy comparison</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>summary_df <span class="ot">&lt;-</span> <span class="fu">map_dfr</span>(model_results, <span class="cf">function</span>(x) {</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">dataset =</span> x<span class="sc">$</span>dataset,</span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">response =</span> x<span class="sc">$</span>response,</span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">scale =</span> x<span class="sc">$</span>scale,</span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">n =</span> x<span class="sc">$</span>n,</span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">AIC =</span> x<span class="sc">$</span>glance<span class="sc">$</span>AIC,</span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">logLik =</span> <span class="fu">as.numeric</span>(x<span class="sc">$</span>glance<span class="sc">$</span>logLik),  <span class="co"># coerce to numeric</span></span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">deviance =</span> x<span class="sc">$</span>glance<span class="sc">$</span>deviance</span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-17"><a href="#cb34-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-18"><a href="#cb34-18" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(summary_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 12 × 7
+   dataset response       scale     n   AIC logLik deviance
+   &lt;chr&gt;   &lt;chr&gt;          &lt;chr&gt; &lt;int&gt; &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;
+ 1 clean   turf_length    25       71  279.  -131.     52.6
+ 2 dirty   turf_length    25       86  361.  -172.     85.3
+ 3 clean   sediment_depth 25       71  241.  -113.     57.8
+ 4 dirty   sediment_depth 25       86  311.  -147.     94.4
+ 5 clean   turf_length    50       78  322.  -153.     71.8
+ 6 dirty   turf_length    50       86  358.  -171.     83.6
+ 7 clean   sediment_depth 50       78  263.  -123.     62.4
+ 8 dirty   sediment_depth 50       86  307.  -146.     91.1
+ 9 clean   turf_length    100      83  345.  -164.     79.5
+10 dirty   turf_length    100      86  351.  -168.     81.1
+11 clean   sediment_depth 100      83  292.  -138.     82.4
+12 dirty   sediment_depth 100      86  297.  -141.     83.9</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># The clean dataset modelling sediment depth at the 25cm scale </span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="co"># performed the best... that is pretty neat! </span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="do">## ----------------- Removing colinear variables -----------------</span></span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(AICcmodavg)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'AICcmodavg' was built under R version 4.4.3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'AICcmodavg'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:MuMIn':
+
+    AICc, DIC, importance</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Prepare base datasets ----</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>datasets <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">clean =</span> scaled_master, <span class="at">dirty =</span> scaled_not_clean)</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>scales <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"25"</span>, <span class="st">"50"</span>, <span class="st">"100"</span>)</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>responses <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"turf_length"</span>, <span class="st">"sediment_depth"</span>)</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Model configurations ----</span></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>model_configs <span class="ot">&lt;-</span> <span class="fu">tribble</span>(</span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span>model_type,       <span class="sc">~</span>formula,</span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">"tpi_no_std"</span>,      <span class="st">"rugo_mean + slope_mean + sapr + plan_curve + tpi"</span>,</span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">"std_no_tpi"</span>,      <span class="st">"rugo_mean + slope_mean + sapr + plan_curve + std_curve"</span></span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Create all combinations ----</span></span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a>model_grid <span class="ot">&lt;-</span> <span class="fu">expand_grid</span>(</span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">dataset_name =</span> <span class="fu">names</span>(datasets),</span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">scale =</span> scales,</span>
+<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">response =</span> responses,</span>
+<span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">model_type =</span> model_configs<span class="sc">$</span>model_type</span>
+<span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-21"><a href="#cb40-21" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Function to fit one model ----</span></span>
+<span id="cb40-22"><a href="#cb40-22" aria-hidden="true" tabindex="-1"></a>fit_nb_model <span class="ot">&lt;-</span> <span class="cf">function</span>(dataset_name, scale, response, model_type) {</span>
+<span id="cb40-23"><a href="#cb40-23" aria-hidden="true" tabindex="-1"></a>  df <span class="ot">&lt;-</span> datasets[[dataset_name]] <span class="sc">%&gt;%</span></span>
+<span id="cb40-24"><a href="#cb40-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(scale_cm <span class="sc">==</span> scale)</span>
+<span id="cb40-25"><a href="#cb40-25" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb40-26"><a href="#cb40-26" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Get formula string from config table</span></span>
+<span id="cb40-27"><a href="#cb40-27" aria-hidden="true" tabindex="-1"></a>  formula_rhs <span class="ot">&lt;-</span> model_configs<span class="sc">$</span>formula[model_configs<span class="sc">$</span>model_type <span class="sc">==</span> model_type]</span>
+<span id="cb40-28"><a href="#cb40-28" aria-hidden="true" tabindex="-1"></a>  formula <span class="ot">&lt;-</span> <span class="fu">as.formula</span>(<span class="fu">paste</span>(response, <span class="st">"~"</span>, formula_rhs))</span>
+<span id="cb40-29"><a href="#cb40-29" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb40-30"><a href="#cb40-30" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Fit model safely</span></span>
+<span id="cb40-31"><a href="#cb40-31" aria-hidden="true" tabindex="-1"></a>  model <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(<span class="fu">glm.nb</span>(formula, <span class="at">data =</span> df),</span>
+<span id="cb40-32"><a href="#cb40-32" aria-hidden="true" tabindex="-1"></a>                    <span class="at">error =</span> <span class="cf">function</span>(e) <span class="cn">NULL</span>)</span>
+<span id="cb40-33"><a href="#cb40-33" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.null</span>(model)) <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
+<span id="cb40-34"><a href="#cb40-34" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb40-35"><a href="#cb40-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
+<span id="cb40-36"><a href="#cb40-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">dataset =</span> dataset_name,</span>
+<span id="cb40-37"><a href="#cb40-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">scale =</span> scale,</span>
+<span id="cb40-38"><a href="#cb40-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">response =</span> response,</span>
+<span id="cb40-39"><a href="#cb40-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">model_type =</span> model_type,</span>
+<span id="cb40-40"><a href="#cb40-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">n =</span> <span class="fu">nrow</span>(df),</span>
+<span id="cb40-41"><a href="#cb40-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">AIC =</span> <span class="fu">AIC</span>(model),</span>
+<span id="cb40-42"><a href="#cb40-42" aria-hidden="true" tabindex="-1"></a>    <span class="at">AICc =</span> <span class="fu">AICc</span>(model),</span>
+<span id="cb40-43"><a href="#cb40-43" aria-hidden="true" tabindex="-1"></a>    <span class="at">logLik =</span> <span class="fu">as.numeric</span>(<span class="fu">logLik</span>(model)),</span>
+<span id="cb40-44"><a href="#cb40-44" aria-hidden="true" tabindex="-1"></a>    <span class="at">deviance =</span> model<span class="sc">$</span>deviance</span>
+<span id="cb40-45"><a href="#cb40-45" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb40-46"><a href="#cb40-46" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb40-47"><a href="#cb40-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-48"><a href="#cb40-48" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Apply to all combinations ----</span></span>
+<span id="cb40-49"><a href="#cb40-49" aria-hidden="true" tabindex="-1"></a>comparison_table <span class="ot">&lt;-</span> <span class="fu">pmap_dfr</span>(model_grid, fit_nb_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.500000
+Warning in dpois(y, mu, log = TRUE): iteration limit reached
+Warning in dpois(y, mu, log = TRUE): iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 0.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 0.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 0.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 0.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.500000
+Warning in dpois(y, mu, log = TRUE): non-integer x = 1.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in glm.nb(formula, data = df): alternation limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 0.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.300000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 0.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.300000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.500000
+Warning in dpois(y, mu, log = TRUE): non-integer x = 1.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 0.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.300000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in glm.nb(formula, data = df): alternation limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 0.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.300000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.500000
+Warning in dpois(y, mu, log = TRUE): non-integer x = 1.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 0.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.300000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 0.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.300000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in glm.nb(formula, data = df): alternation limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in glm.nb(formula, data = df): alternation limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 0.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.300000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 0.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 1.300000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb88"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a><span class="co"># --- View tidy table of all models ----</span></span>
+<span id="cb88-2"><a href="#cb88-2" aria-hidden="true" tabindex="-1"></a>comparison_table <span class="sc">%&gt;%</span></span>
+<span id="cb88-3"><a href="#cb88-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(response, dataset, scale, model_type) <span class="sc">%&gt;%</span></span>
+<span id="cb88-4"><a href="#cb88-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="at">n =</span> <span class="dv">36</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 24 × 9
+   dataset scale response       model_type     n   AIC  AICc logLik deviance
+   &lt;chr&gt;   &lt;chr&gt; &lt;chr&gt;          &lt;chr&gt;      &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;
+ 1 clean   100   sediment_depth std_no_tpi    83  291.  292.  -138.     83.3
+ 2 clean   100   sediment_depth tpi_no_std    83  291.  293.  -139.     83.8
+ 3 clean   25    sediment_depth std_no_tpi    71  241.  243.  -114.     60.0
+ 4 clean   25    sediment_depth tpi_no_std    71  239.  241.  -113.     57.9
+ 5 clean   50    sediment_depth std_no_tpi    78  262.  264.  -124.     63.8
+ 6 clean   50    sediment_depth tpi_no_std    78  261.  263.  -123.     62.5
+ 7 dirty   100   sediment_depth std_no_tpi    86  296.  298.  -141.     84.7
+ 8 dirty   100   sediment_depth tpi_no_std    86  297.  298.  -141.     85.1
+ 9 dirty   25    sediment_depth std_no_tpi    86  309.  310.  -147.     94.4
+10 dirty   25    sediment_depth tpi_no_std    86  310.  312.  -148.     95.0
+11 dirty   50    sediment_depth std_no_tpi    86  305.  307.  -146.     91.1
+12 dirty   50    sediment_depth tpi_no_std    86  305.  307.  -146.     91.2
+13 clean   100   turf_length    std_no_tpi    83  343.  344.  -164.     79.6
+14 clean   100   turf_length    tpi_no_std    83  343.  344.  -164.     79.5
+15 clean   25    turf_length    std_no_tpi    71  281.  283.  -134.     57.3
+16 clean   25    turf_length    tpi_no_std    71  279.  280.  -132.     54.7
+17 clean   50    turf_length    std_no_tpi    78  322.  324.  -154.     74.1
+18 clean   50    turf_length    tpi_no_std    78  321.  323.  -154.     73.5
+19 dirty   100   turf_length    std_no_tpi    86  349.  351.  -168.     81.1
+20 dirty   100   turf_length    tpi_no_std    86  349.  351.  -168.     81.1
+21 dirty   25    turf_length    std_no_tpi    86  359.  360.  -172.     85.3
+22 dirty   25    turf_length    tpi_no_std    86  360.  361.  -173.     84.9
+23 dirty   50    turf_length    std_no_tpi    86  356.  358.  -171.     83.7
+24 dirty   50    turf_length    tpi_no_std    86  356.  358.  -171.     83.9</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb90"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">min</span>(summary_df<span class="sc">$</span>AIC)) <span class="co">#241 from clean, sed. depth, 25cm</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 241.0117</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb92"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">min</span>(comparison_table<span class="sc">$</span>AIC)) <span class="co">#239 from clean, sed. depth, 25cm AND no standard curve values</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 239.0882</code></pre>
+</div>
+</div>
+<section id="so-after-creating-models-based-on-the-scale-removing-or-not-of-outliers-and-removing-colinear-variables-the-best-model-is-using-cleaned-data-with-all-outliers-removed-at-the-25cm-scale-without-the-standard-curve-predictor-variable.-and-this-is-predicting-sediment-depth." class="level3">
+<h3 class="anchored" data-anchor-id="so-after-creating-models-based-on-the-scale-removing-or-not-of-outliers-and-removing-colinear-variables-the-best-model-is-using-cleaned-data-with-all-outliers-removed-at-the-25cm-scale-without-the-standard-curve-predictor-variable.-and-this-is-predicting-sediment-depth."><strong>So, after creating models based on the scale, removing or not of outliers, and removing colinear variables, the best model is using cleaned data with ALL outliers removed, at the 25cm scale, without the standard curve predictor variable. And this is predicting sediment depth.</strong></h3>
+</section>
+</section>
+<section id="after-selecting-best-model-simplify-using-the-dredge-function" class="level1">
+<h1>4. After selecting best model, simplify using the dredge function</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb94"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb94-1"><a href="#cb94-1" aria-hidden="true" tabindex="-1"></a>clean25 <span class="ot">&lt;-</span> scaled_master <span class="sc">%&gt;%</span> <span class="fu">filter</span>(scale_cm <span class="sc">==</span> <span class="st">"25"</span>)</span>
+<span id="cb94-2"><a href="#cb94-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb94-3"><a href="#cb94-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit the best base model again (just to be explicit)</span></span>
+<span id="cb94-4"><a href="#cb94-4" aria-hidden="true" tabindex="-1"></a>best_model <span class="ot">&lt;-</span> <span class="fu">glm.nb</span>(</span>
+<span id="cb94-5"><a href="#cb94-5" aria-hidden="true" tabindex="-1"></a>  sediment_depth <span class="sc">~</span> rugo_mean <span class="sc">+</span> slope_mean <span class="sc">+</span> sapr <span class="sc">+</span> plan_curve <span class="sc">+</span> tpi,</span>
+<span id="cb94-6"><a href="#cb94-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> clean25</span>
+<span id="cb94-7"><a href="#cb94-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dpois(y, mu, log = TRUE): non-integer x = 0.500000</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb97"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb97-1"><a href="#cb97-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run dredge on that model</span></span>
+<span id="cb97-2"><a href="#cb97-2" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">na.action =</span> <span class="st">"na.fail"</span>)  <span class="co"># required for dredge to work</span></span>
+<span id="cb97-3"><a href="#cb97-3" aria-hidden="true" tabindex="-1"></a>dredge_results <span class="ot">&lt;-</span> <span class="fu">dredge</span>(best_model, <span class="at">rank =</span> <span class="st">"AICc"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Fixed term is "(Intercept)"</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb100"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb100-1"><a href="#cb100-1" aria-hidden="true" tabindex="-1"></a><span class="co"># View the model ranking</span></span>
+<span id="cb100-2"><a href="#cb100-2" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(dredge_results)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Global model call: glm.nb(formula = sediment_depth ~ rugo_mean + slope_mean + sapr + 
+    plan_curve + tpi, data = clean25, init.theta = 35428.92716, 
+    link = log)
+---
+Model selection table 
+    (Int)  pln_crv   rug_men      spr slp_men      tpi df   logLik  AICc delta
+30 0.5805 -0.47710           -0.50840 -0.2428 -0.21200  6 -112.591 238.5  0.00
+26 0.6525 -0.35370                    -0.3610 -0.15370  5 -113.798 238.5  0.02
+22 0.5511 -0.47920           -0.96850         -0.22910  5 -114.434 239.8  1.30
+9  0.6529                             -0.2639           3 -117.097 240.6  2.06
+10 0.6591 -0.20730                    -0.3144           4 -116.046 240.7  2.20
+32 0.5783 -0.47520 -0.026950 -0.51540 -0.2318 -0.21630  7 -112.544 240.9  2.37
+28 0.6515 -0.35120 -0.018630          -0.3548 -0.15580  6 -113.777 240.9  2.37
+25 0.6469                             -0.2704 -0.08197  4 -116.279 241.2  2.67
+24 0.5493 -0.47330 -0.069190 -0.93110         -0.23710  6 -114.094 241.5  3.01
+14 0.6386 -0.23080           -0.16990 -0.2648           5 -115.823 242.6  4.07
+13 0.6429                    -0.08178 -0.2371           4 -117.036 242.7  4.18
+11 0.6526          -0.013760          -0.2592           4 -117.086 242.8  4.28
+12 0.6593 -0.20870  0.005526          -0.3165           5 -116.044 243.0  4.52
+29 0.6260                    -0.15450 -0.2229 -0.09116  5 -116.092 243.1  4.61
+27 0.6457          -0.031770          -0.2602 -0.08549  5 -116.220 243.4  4.87
+21 0.6160                    -0.51520         -0.10280  4 -117.869 244.3  5.85
+5  0.6415                    -0.43310                   3 -119.098 244.6  6.06
+16 0.6387 -0.23170  0.003744 -0.16970 -0.2664           6 -115.822 245.0  6.46
+15 0.6422          -0.015780 -0.08404 -0.2309           5 -117.021 245.0  6.47
+6  0.6303 -0.19580           -0.57040                   4 -118.206 245.0  6.52
+31 0.6238          -0.035960 -0.16160 -0.2088 -0.09552  6 -116.015 245.3  6.85
+23 0.6137          -0.081020 -0.47630         -0.10930  5 -117.443 245.8  7.31
+7  0.6399          -0.068990 -0.39920                   4 -118.801 246.2  7.71
+8  0.6304 -0.18400 -0.056440 -0.53200                   5 -118.008 246.9  8.44
+1  0.7446                                               2 -121.910 248.0  9.50
+3  0.7287          -0.108400                            3 -121.209 248.8 10.28
+17 0.7421                                     -0.06448  3 -121.297 249.0 10.46
+19 0.7235          -0.122700                  -0.07613  4 -120.399 249.4 10.91
+2  0.7478 -0.02697                                      3 -121.884 250.1 11.63
+18 0.7523 -0.09347                            -0.08239  4 -121.035 250.7 12.18
+4  0.7315 -0.02460 -0.108200                            4 -121.188 251.0 12.49
+20 0.7340 -0.10130 -0.126200                  -0.09633  5 -120.091 251.1 12.61
+   weight
+30  0.188
+26  0.186
+22  0.099
+9   0.067
+10  0.063
+32  0.058
+28  0.058
+25  0.050
+24  0.042
+14  0.025
+13  0.023
+11  0.022
+12  0.020
+29  0.019
+27  0.017
+21  0.010
+5   0.009
+16  0.007
+15  0.007
+6   0.007
+31  0.006
+23  0.005
+7   0.004
+8   0.003
+1   0.002
+3   0.001
+17  0.001
+19  0.001
+2   0.001
+18  0.000
+4   0.000
+20  0.000
+Models ranked by AICc(x) </code></pre>
+</div>
+</div>
+</section>
+<section id="fit-the-best-most-parsimonious-model" class="level1">
+<h1>5. Fit the best most parsimonious model</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb102"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb102-1"><a href="#cb102-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract the top model</span></span>
+<span id="cb102-2"><a href="#cb102-2" aria-hidden="true" tabindex="-1"></a>best_dredged_model <span class="ot">&lt;-</span> <span class="fu">get.models</span>(dredge_results, <span class="at">subset =</span> <span class="dv">1</span>)[[<span class="dv">1</span>]]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached
+Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace =
+control$trace &gt; : iteration limit reached</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb104"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb104-1"><a href="#cb104-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Summarize it</span></span>
+<span id="cb104-2"><a href="#cb104-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(best_dredged_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm.nb(formula = sediment_depth ~ plan_curve + sapr + slope_mean + 
+    tpi + 1, data = clean25, init.theta = 35467.0526, link = log)
+
+Coefficients:
+            Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept)  0.58054    0.11090   5.235 1.65e-07 ***
+plan_curve  -0.47711    0.18143  -2.630  0.00855 ** 
+sapr        -0.50843    0.36444  -1.395  0.16299    
+slope_mean  -0.24276    0.12563  -1.932  0.05331 .  
+tpi         -0.21203    0.08644  -2.453  0.01417 *  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for Negative Binomial(35467.05) family taken to be 1)
+
+    Null deviance: 76.604  on 70  degrees of freedom
+Residual deviance: 57.967  on 66  degrees of freedom
+AIC: 237.18
+
+Number of Fisher Scoring iterations: 1
+
+              Theta:  35467 
+          Std. Err.:  606920 
+Warning while fitting theta: iteration limit reached 
+
+ 2 x log-likelihood:  -225.182 </code></pre>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
