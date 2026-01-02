@@ -74,13 +74,64 @@ vars_of_interest <- c("rugo_mean", "rugo_var", "sapr", "std_curve", "plan_curve"
                       "slope_mean", "slope_var", "tpi")
 
 for (v in vars_of_interest) {
-  p <- master %>%
-    ggplot(aes(x = site, y = .data[[v]], fill = site)) +
+  p <- clean_master %>%
+    ggplot(aes(x = site_code, y = .data[[v]], fill = site)) +
     geom_boxplot() +
     theme_bw() +
     ggtitle(paste("Site comparison:", v))
   print(p)
 }
+
+rugo <- no_nndr %>%
+  ggplot(aes(x = site_code, y = rugo_mean, fill = site)) +
+  geom_boxplot() +
+  theme_bw() +
+  ggtitle(paste("Rugosity"))
+print(rugo)
+
+sapr <- no_nndr %>%
+  ggplot(aes(x = site_code, y = sapr, fill = site)) +
+  geom_boxplot() +
+  theme_bw() +
+  ggtitle(paste("SAPAR"))
+print(sapr)
+
+slope <- no_nndr %>%
+  ggplot(aes(x = site_code, y = slope_mean, fill = site)) +
+  geom_boxplot() +
+  theme_bw() +
+  ggtitle(paste("Slope"))
+print(rugo)
+
+std_curve <- no_nndr %>%
+  ggplot(aes(x = site_code, y = std_curve, fill = site)) +
+  geom_boxplot() +
+  theme_bw() +
+  ggtitle(paste("Standard Curvature"))
+print(std_curve)
+
+plan_curve <- no_nndr %>%
+  ggplot(aes(x = site_code, y = plan_curve, fill = site)) +
+  geom_boxplot() +
+  theme_bw() +
+  ggtitle(paste("Planform Curvature"))
+print(plan_curve)
+
+TPI <- no_nndr %>%
+  ggplot(aes(x = site_code, y = tpi, fill = site)) +
+  geom_boxplot() +
+  theme_bw() +
+  ggtitle(paste("TPI"))
+print(TPI)
+
+(rugo | sapr) / (std_curve | plan_curve) / (TPI | slope)
+
+combined_plot <- (rugo + sapr + std_curve + plan_curve + TPI + slope) +
+  plot_layout(guides = "collect") &
+  theme(legend.position = "bottom")   # optional (you can choose "right", etc.)
+
+combined_plot
+ggsave("figs/boxplots.png", units="in", width=7, height=6, dpi=600)
 
 ## Predictors and LSAT scatterplots -------
 
@@ -290,15 +341,25 @@ rows_with_outliers
 # but let's remove and run the models with and without the outliers removed 
 # to see if those being left out does make a difference in model significance
 
-clean_master <- master %>%
-  filter(
-    between(tpi, quantile(tpi, 0.01, na.rm = TRUE), quantile(tpi, 0.99, na.rm = TRUE)),
-    between(std_curve, quantile(std_curve, 0.01, na.rm = TRUE), quantile(std_curve, 0.99, na.rm = TRUE)),
-    between(plan_curve, quantile(plan_curve, 0.01, na.rm = TRUE), quantile(plan_curve, 0.99, na.rm = TRUE)),
-    between(rugo_mean, quantile(rugo_mean, 0.01, na.rm = TRUE), quantile(rugo_mean, 0.99, na.rm = TRUE)),
-    between(slope_mean, quantile(tpi, 0.01, na.rm = TRUE), quantile(slope_mean, 0.99, na.rm = TRUE)),
-    between(sapr, quantile(sapr, 0.01, na.rm = TRUE), quantile(sapr, 0.99, na.rm = TRUE))
-  )
+# clean_master <- master %>%
+#  filter(
+#    between(tpi, quantile(tpi, 0.01, na.rm = TRUE), quantile(tpi, 0.99, na.rm = TRUE)),
+#    between(std_curve, quantile(std_curve, 0.01, na.rm = TRUE), quantile(std_curve, 0.99, na.rm = TRUE)),
+#    between(plan_curve, quantile(plan_curve, 0.01, na.rm = TRUE), quantile(plan_curve, 0.99, na.rm = TRUE)),
+#    between(rugo_mean, quantile(rugo_mean, 0.01, na.rm = TRUE), quantile(rugo_mean, 0.99, na.rm = TRUE)),
+#    between(slope_mean, quantile(tpi, 0.01, na.rm = TRUE), quantile(slope_mean, 0.99, na.rm = TRUE)),
+#    between(sapr, quantile(sapr, 0.01, na.rm = TRUE), quantile(sapr, 0.99, na.rm = TRUE))
+#  )
+
+## OUTLIERS UPDATE 11/24/25 ------------------
+# Rolo and Ryan said only to remove the TPI outlier at site 5 because it's 
+# really the only outlier that makes sense (bad stitching of DEM) and is the
+# farthest away. But, I am going to go ahead with what makes the most sense to
+# me and remove that whole row of data for all 3 scales and variables
+
+# removal of NNDR points 5 and 6: 
+
+clean_master <- master[!(master$nail =="5" | master$nail =="6" & master$site =="NNDR" ),] 
 
 
 # --------------------------6. Standardize Data -----------------------
@@ -306,8 +367,8 @@ clean_master <- master %>%
 scaled_master <- clean_master %>%
   mutate(across(c(rugo_mean, slope_mean, sapr, std_curve, plan_curve, tpi), scale))
 
-scaled_not_clean <- master %>%
-  mutate(across(c(rugo_mean, slope_mean, sapr, std_curve, plan_curve, tpi), scale))
+# scaled_not_clean <- master %>%
+#  mutate(across(c(rugo_mean, slope_mean, sapr, std_curve, plan_curve, tpi), scale))
 
 
 # ------------------------- 7. Basic models -----------------------
@@ -329,4 +390,5 @@ model_results <- model_grid %>%
   )
 
 print(model_results %>% dplyr::select(response, predictor, scale, r_squared, p_value))
+
 

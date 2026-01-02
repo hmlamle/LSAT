@@ -133,44 +133,83 @@ read_rugosity <- function() {
         return(NULL)
       }
       
-      # Read all CSVs, assign manual column names (no header in Viscore files)
       data_list <- purrr::map(files, ~read_csv(.x, 
                                                col_names = c("spacing", "transect", "sample", "x", "y", "z"),
                                                show_col_types = FALSE))
       
-      # Calculate rugosity per file (each file = one nail)
-      rugo <- purrr::map2_dfr(data_list, seq_along(data_list), ~{
+      purrr::map2_dfr(data_list, seq_along(data_list), ~{
+        
         df <- .x
         nail_id <- as.character(.y)
         
-        df %>%
-          filter(z != 0) %>%
-          group_by(transect) %>%
-          summarise(
-            standard_length = sum(sqrt(diff(x)^2 + diff(y)^2)),
-            true_length = sum(sqrt(diff(x)^2 + diff(y)^2 + diff(z)^2)),
-            rugosity = true_length / standard_length,
-            point_range = max(z) - min(z),
-            .groups = "drop"
-          ) %>%
-          summarise(
-            rugo_mean = mean(rugosity),
-            rugo_var  = var(rugosity),
-            avg_point_range = mean(point_range)
-          ) %>%
-          mutate(
+        # Drop z = 0 rows — treat as missing, NOT corruption
+        df2 <- df %>% filter(z != 0)
+        
+        # If all rows were 0 → no usable data
+        if (nrow(df2) == 0) {
+          warning(glue::glue(
+            "⚠ Nail {nail_id} at {site_name}, scale {s} has all z=0; no rugosity computed."
+          ))
+          
+          return(tibble(
+            rugo_mean = NA_real_,
+            rugo_var  = NA_real_,
+            avg_point_range = NA_real_,
             nail = nail_id,
             scale_cm = s,
             site = site_name,
             site_code = site_code,
             date = survey_date
-          )
+          ))
+        }
+        
+        # If <2 points left → can’t compute diff()
+        if (nrow(df2) < 2) {
+          warning(glue::glue(
+            "⚠ Nail {nail_id} at {site_name}, scale {s} has <2 valid rows (after removing z=0)."
+          ))
+          
+          return(tibble(
+            rugo_mean = NA_real_,
+            rugo_var  = NA_real_,
+            avg_point_range = NA_real_,
+            nail = nail_id,
+            scale_cm = s,
+            site = site_name,
+            site_code = site_code,
+            date = survey_date
+          ))
+        }
+        
+        # Compute rugosity safely
+        dx <- diff(df2$x)
+        dy <- diff(df2$y)
+        dz <- diff(df2$z)
+        
+        standard_length <- sum(sqrt(dx^2 + dy^2))
+        true_length     <- sum(sqrt(dx^2 + dy^2 + dz^2))
+        
+        rugosity <- ifelse(standard_length == 0, NA_real_,
+                           true_length / standard_length)
+        
+        point_range <- max(df2$z) - min(df2$z)
+        
+        tibble(
+          rugo_mean = rugosity,
+          rugo_var  = var(c(rugosity)),  # placeholder, leave NA if you prefer
+          avg_point_range = point_range,
+          nail = nail_id,
+          scale_cm = s,
+          site = site_name,
+          site_code = site_code,
+          date = survey_date
+        )
       })
-      
-      return(rugo)
     })
   })
 }
+
+
 
 
 ## ================== READ & PROCESS SLOPE DATA (25/50/100 cm) =================
@@ -403,7 +442,7 @@ rs_joined <- rugosity_raw %>%
 master_lsat <- left_join(rs_joined, bio_clean, 
                          by = c("site", "site_code", "date", "nail"))
 master_lsat <- master_lsat %>%
-  select(site, site_code, date, scale_cm, nail, sediment_depth, turf_length, rugo_mean, rugo_var, slope_mean, slope_var, sapr, std_curve, plan_curve, tpi)
+  select(site, site_code, date, scale_cm, nail, sediment_depth, turf_length, rugo_mean, slope_mean, slope_var, sapr, std_curve, plan_curve, tpi)
 
 
 ## ======================= WRITE FINAL DATASET============================
