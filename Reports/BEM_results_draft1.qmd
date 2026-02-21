@@ -1,0 +1,402 @@
+---
+title: "BEM LSAT metrics influenced by morphometrics at different scales - Prelim analysis 1"
+format: html
+---
+
+# Background: 
+I have three sites with anywhere from 12 to 25 data points for LSAT metrics: turf height and sediment depth. It is predicted that these metrics, and spatial extent of LSAT is controlled by the structural complexity of the reef, likely at the micro-scale (<1m^2^). This analysis is exploring the relationship of different morphometrics extracted from the Digital Elevation Model (DEM) created via photogrammetry of different sites across South Florida on LSAT turf length and sediment depth. 
+
+## Viscore Analysis: Rugosity
+In Viscore, I used their rugosity tool to estimate the rugosity at a 25 x 25cm box around each LSAT measurement point. This process was repeated for a 50 x 50cm box and 100 x 100cm box. I used a box with 20 lines and 100 points along each line to get x,y,z data. Rugosity was calculated by dividing the surface area (using z depth data) by the planar area (25cm, 50cm or 100cm, respectively). 
+
+## GIS Analysis: Surface Area to Planar Area Ratio, Profile Curvatures, Topographic Position Index
+In GIS, I repeated the process of drawing boxes around the points where LSAT data was collected and used those polygon layers to extract the below values as means of the area scales. 
+
+**Slope -** The average angle within each of the polygon areas measured in decimal degrees. A slope at 0 is completely flat, while a slope at 90 is vertical. 
+
+**Surface Area to Planar Area Ratio (SAPR) -** The GIS version of calculating rugosity. Instead of drawing a set of lines within a box as in Viscore, the surface area within each scaled polygon layer was divided by the 2D planar area. 
+
+**Profile Curvatures: Standard -** The second derivative of the DEM surface. This indicates horizontal AND vertical concave (negative values) or convex forms (positive values). This tells us the direction that water or sediment would flow naturally downhill. This can capture micro-trends of sediment accumulation in the reefscape. 
+
+**Profile Curvatures: Planform -** This curvature method measures only the curvature of the terrain perpendicular to the direction of steepest slope. It indicates convex curvature, meaning that there is curvature bulging outward (positive planform curvature). Concave curvature (negative values) indicates that the surface is curving inwards, causing convergence of sediment/water flow. 
+
+**Topographic Position Index (TPI) -** A measure of the relative elevation of a location compared to the average elevation of its surrounding neighborhood. Positive values indicate a position is higher than it's surroundings, while negative values indicate a location is lower. Values near zero are flat areas. 
+
+# Effect of Spatial Scale of Rugosity (Viscore) and Slope (GIS) on LSAT metrics
+By pooling data across sites and examining model fits separately for each scale (25 cm, 50 cm, 100 cm), we aim to identify which spatial scale best captures the drivers of sediment accumulation and turf growth on the reef in addition to LSAT abundance. 
+
+```{r include=FALSE}
+library(tidyverse)
+library(MASS)
+library(broom)
+library(AICcmodavg)
+library(MuMIn)
+library(glmmTMB)
+library(performance)
+library(purrr)
+library(dplyr)
+library(bbmle)
+library(ggplot2)
+library(ggeffects)
+
+SC_bio <- read.csv("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/raw/LSAT/4. Biological metrics/1_Benthic_Com_FL_SED_2023-24.csv")
+
+scaled_master <- read.csv("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/toUse/LSAT/master_LSAT_scaled.csv")
+
+```
+
+# GLM Model Results: Sediment Depth at 25, 50, 100cm scales of measurement
+These results are what I presented over at the ReeFLorida Conference in November. When discussing my results with Dr. Duran, he recommended that I remove NNDR (spur and groove reef) from the analysis and see if the results change. Since this is a different reef type than South Canyon, Emerald, and Ft Lauderdale and there's only one replicate of this reef type I decided to remove it from the presentation. The below results show the relationship both with and without including NNDR from the analysis. 
+
+```{r}
+df25 <- scaled_master %>%
+  filter(scale_cm =="25")
+df50 <- scaled_master %>%
+  filter(scale_cm =="50")
+df100 <- scaled_master %>%
+  filter(scale_cm =="100")
+
+# NO NNDR: 
+
+no_nndr <- scaled_master %>%
+  filter(!site_code == "NNDR")
+
+df25_nndr <- no_nndr %>%
+  filter(scale_cm =="25")
+df50_nndr <- no_nndr %>%
+  filter(scale_cm =="50")
+df100_nndr <- no_nndr %>%
+  filter(scale_cm =="100")
+
+options(na.action = "na.fail")
+```
+
+## Sediment Depth ~ Morphometrics (25cm)
+
+```{r}
+sed_25 <- glmmTMB(sediment_depth ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
+                  data = df25, family = tweedie(link ="log"))
+dredge_25_sed <- dredge(sed_25, rank = "AICc")
+subset(dredge_25_sed, delta <= 4)
+
+# select the best model:
+best_sed_25 <- get.models(dredge_25_sed, subset = 5)[[1]]
+
+# No NNDR:
+
+sed_25_nndr <- glmmTMB(sediment_depth ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
+                  data = df25_nndr, family = tweedie(link ="log"))
+dredge_25_sed_nndr <- dredge(sed_25_nndr, rank = "AICc")
+subset(dredge_25_sed_nndr, delta <= 4)
+
+best_sed_25_nndr <- get.models(dredge_25_sed_nndr, subset = 10)[[1]]
+
+```
+
+
+## Sediment Depth ~ Morphometrics (50cm)
+
+```{r}
+sed_50 <- glmmTMB(sediment_depth ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
+                  data = df50, family = tweedie(link ="log"))
+dredge_50_sed <- dredge(sed_50, rank = "AICc")
+subset(dredge_50_sed, delta <= 4)
+
+# select the best model:
+best_sed_50 <- get.models(dredge_50_sed, subset = 7)[[1]]
+
+# NO NNDR: 
+
+sed_50_nndr <- glmmTMB(sediment_depth ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
+                       data = df50_nndr, family = tweedie(link ="log"))
+dredge_50_sed_nndr <- dredge(sed_50_nndr, rank = "AICc")
+subset(dredge_50_sed_nndr, delta <= 4)
+
+best_sed_50_nndr <- get.models(dredge_50_sed_nndr, subset = 5)[[1]]
+
+
+```
+
+## Sediment Depth ~ Morphometrics (100cm)
+
+```{r}
+sed_100 <- glmmTMB(sediment_depth ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
+                  data = df100, family = tweedie(link ="log"))
+dredge_100_sed <- dredge(sed_100, rank = "AICc")
+subset(dredge_100_sed, delta <= 4)
+
+# just use rugosity for the best model for sed 100. 
+
+# select the best model:
+best_sed_100 <- get.models(dredge_100_sed, subset = 1)[[1]]
+
+# NO NNDR: 
+
+sed_100_nndr <- glmmTMB(sediment_depth ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
+                       data = df100_nndr, family = tweedie(link ="log"))
+dredge_100_sed_nndr <- dredge(sed_100_nndr, rank = "AICc")
+subset(dredge_100_sed_nndr, delta <= 4)
+
+best_sed_100_nndr <- get.models(dredge_100_sed_nndr, subset = 1)[[1]]
+```
+
+# GLM Model Results: Turf Length at 25, 50, 100cm scales of measurement
+These results are what I presented over at the ReeFLorida Conference in November. I also reran these results with and without NNDR and did not include NNDR in the presentation. 
+
+## Turf Length ~ Morphometrics (25cm)
+
+```{r}
+turf_25 <- glmmTMB(turf_length ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
+                  data = df25, family = tweedie(link ="log"))
+dredge_25_turf <- dredge(turf_25, rank = "AICc")
+subset(dredge_25_turf, delta <= 4)
+
+# select the best model:
+best_turf_25 <- get.models(dredge_25_turf, subset = 2)[[1]]
+
+# NO NNDR: 
+
+turf_25_nndr <- glmmTMB(turf_length ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
+                        data = df25_nndr, family = tweedie(link ="log"))
+dredge_turf_25_nndr <- dredge(turf_25_nndr, rank = "AICc")
+subset(dredge_turf_25_nndr, delta <= 4)
+
+# select the best model:
+best_turf_25_nndr <- get.models(dredge_turf_25_nndr, subset = 1)[[1]]
+
+```
+
+
+## Turf Length ~ Morphometrics (50cm)
+
+```{r}
+turf_50 <- glmmTMB(turf_length ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
+                  data = df50, family = tweedie(link ="log"))
+dredge_50_turf <- dredge(turf_50, rank = "AICc")
+subset(dredge_50_turf, delta <= 4)
+
+# select the best model:
+best_turf_50 <- get.models(dredge_50_turf, subset = 15)[[1]]
+
+# NO NNDR:
+
+turf_50_nndr <- glmmTMB(turf_length ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
+                        data = df50_nndr, family = tweedie(link ="log"))
+dredge_50_turf_nndr <- dredge(turf_50_nndr, rank = "AICc")
+subset(dredge_50_turf_nndr, delta <= 4)
+
+# select the best model:
+best_turf_50_nndr <- get.models(dredge_50_turf_nndr, subset = 1)[[1]]
+```
+
+## Turf Length ~ Morphometrics (100cm)
+
+```{r}
+turf_100 <- glmmTMB(turf_length ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
+                   data = df100, family = tweedie(link ="log"))
+dredge_100_turf <- dredge(turf_100, rank = "AICc")
+subset(dredge_100_turf, delta <= 4)
+
+# select the best model:
+best_turf_100 <- get.models(dredge_100_turf, subset = 2)[[1]]
+
+# NO NNDR:
+
+turf_100_nndr <- glmmTMB(turf_length ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
+                        data = df100_nndr, family = tweedie(link ="log"))
+dredge_100_turf_nndr <- dredge(turf_100_nndr, rank = "AICc")
+subset(dredge_100_turf_nndr, delta <= 4)
+
+best_turf_100_nndr <- get.models(dredge_100_turf_nndr, subset = 4)[[1]]
+```
+
+
+## Comparing Model Results at each scale: 
+
+```{r}
+# Sediment Depth (w/ and w/o NNDR)
+AICtab(best_sed_25, best_sed_50, best_sed_100)
+AICtab(best_sed_25_nndr, best_sed_50_nndr, best_sed_100_nndr)
+
+#Turf Length (w/ and w/o NNDR)
+AICtab(best_turf_25, best_turf_50, best_turf_100)
+AICtab(best_turf_25_nndr, best_turf_50_nndr, best_turf_100_nndr)
+
+```
+
+
+## Plotting Marginal Effects for the best scale (without NNDR): 
+
+```{r}
+## Sediment Depth ---------------
+# Best model was 50cm: sediment depth ~ mean slope
+
+# Slope: 
+orig_breaks <- c(20, 25, 30, 35, 40, 45, 50)   # original values you want
+
+z_breaks <- (orig_breaks - 39.33403) / 6.613804
+
+pred_sed_slope_mean <- ggpredict(best_sed_50_nndr, terms = "slope_mean") #[-0.72:4.8549,by= 0.1]
+sed_slope <- plot(pred_sed_slope_mean) +
+  ggtitle(" ") +
+  coord_cartesian(xlim = c(-2, 1.4074)) +
+  theme_classic()+
+  labs(y = "Predicted Sediment Depth",
+       x = "Mean Slope")+
+  scale_x_continuous(
+    breaks = z_breaks,   
+    labels = function(z) round(z * 6.613804 + 39.33403, 2))+
+  theme(axis.title = element_text(size = 14), 
+        axis.text.y = element_text(size = 14, colour = "black"), 
+        axis.text.x = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust=0.5),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = 'none',
+        legend.title = element_text(size = 14),
+        strip.text = element_text(size = 14),
+        legend.text = element_text(size = 12))
+print(sed_slope)
+
+
+## Turf Length ---------------
+# best model was 50cm : turf length ~ planform curvature + mean slope 
+
+# planform curvature: 
+orig_breaks <- c(-75000, -50000, -25000, 0, 25000)
+z_breaks <- (orig_breaks - -6270.369) / 39516.62
+
+pred_turf_planform <- ggpredict(best_turf_50_nndr, terms = "plan_curve") #[-0.72:4.8549,by= 0.1]
+turf_planform <- plot(pred_turf_planform) +
+  ggtitle(" ") +
+  coord_cartesian(ylim = c(0, 15)) +
+  theme_classic()+
+  labs(y = "Predicted Turf Length",
+       x = "Planform Curvature")+
+  scale_x_continuous(
+    breaks = z_breaks,   
+    labels = function(z) round(z * 39516.62 + -6270.369, 2))+
+  theme(axis.title = element_text(size = 14), 
+        axis.text.y = element_text(size = 14, colour = "black"), 
+        axis.text.x = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust=0.5),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = 'none',
+        legend.title = element_text(size = 14),
+        strip.text = element_text(size = 14),
+        legend.text = element_text(size = 12))
+print(turf_planform)
+
+# slope:
+orig_breaks <- c(20, 25, 30, 35, 40, 45, 50)   # original values you want
+z_breaks <- (orig_breaks - 39.33403) / 6.613804
+
+pred_turf_slope_mean <- ggpredict(best_turf_50_nndr, terms = "slope_mean")
+turf_slope <- plot(pred_turf_slope_mean) +
+  ggtitle(" ") +
+  coord_cartesian(ylim = c(0, 15)) +
+  theme_classic()+
+  labs(y = " ",
+       x = "Mean Slope")+
+  scale_x_continuous(
+    breaks = z_breaks,   
+    labels = function(z) round(z * 6.613804 + 39.33403, 1))+
+  theme(axis.title = element_text(size = 14), 
+        axis.text.y = element_text(size = 14, colour = "black"), 
+        axis.text.x = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust=0.5),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = 'none',
+        legend.title = element_text(size = 14),
+        strip.text = element_text(size = 14),
+        legend.text = element_text(size = 12))
+print(turf_slope)
+
+```
+
+
+# Using More Biological Data: Abundance of LSAT 
+These are new analyses I've done for BEM (and beyond). To better understand the nature of the data, I made a diagram below. There is two datasets for each site, one for the LSAT data, which is measured within a 5cm x 5cm "mini" plot at a random spot around each nail (labelled with the green dots). This has the data for sediment depth and turf length and additionally has percent cover of different organisms (CCA, sponge, macroalgae, corals etc).  
+
+In addition to these mini plots, Benthic abundance and diversity is taken at each nail along the transect (labelled with orange dots). This data does not have LSAT metrics, but it does have LSAT depth, percent cover of LSAT, and percent cover of different organisms (same as above functional groups). 
+
+These biological datasets have not yet been QAQC'ed for 2025, but have for 2023 which is when I first went out for South Canyon. Here I create models for predicting LSAT abundance within a 25cm plot using the morphometrics described previously at each scale. 
+
+```{r}
+# Filter master dataset for just South Canyon: 
+SC_og <- scaled_master %>%
+  filter(site_code == "SC")
+
+# Import biological dataset: 
+C_bio <- read.csv("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/raw/LSAT/4. Biological metrics/1_Benthic_Com_FL_SED_2023-24.csv")
+SC_bio <- SC_bio %>%
+  filter(Site == "South Canyon" & Season == "Fall") 
+
+
+SC_master <- cbind(SC_og, SC_bio) %>%
+  dplyr::select(-Season, -Site, -Month, -Day, -Year)
+
+```
+
+## Abundance (25cm plot) ~ Morphometrics (25cm)
+ 
+```{r}
+SC_25 <- SC_master %>%
+  filter(scale_cm == 25)
+
+abundance_25 <- glmmTMB(LSAT_Abundance ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
+                  data = SC_25, 
+                  family = tweedie(link ="log"),
+                  na.action = "na.fail")
+abundance_25 <- dredge(abundance_25, rank = "AICc")
+subset(abundance_25, delta <= 4) # null model is best model for LSAT abundance in a 25cm plot and 25cm scale
+
+# select the best model:
+best_ab_25 <- get.models(abundance_25, subset = 8)[[1]]
+```
+
+## Abundance (25cm plot) ~ Morphometrics (50cm)
+ 
+```{r}
+SC_50 <- SC_master %>%
+  filter(scale_cm == 50)
+
+abundance_50 <- glmmTMB(LSAT_Abundance ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
+                        data = SC_50, 
+                        family = tweedie(link ="log"),
+                        na.action = "na.fail")
+abundance_50 <- dredge(abundance_50, rank = "AICc")
+subset(abundance_50, delta <= 4) # null model is best model for LSAT abundance in a 25cm plot and 50cm scale
+
+
+# select the best model:
+best_ab_50 <- get.models(abundance_50, subset = 1)[[1]]
+```
+
+
+## Abundance (25cm plot) ~ Morphometrics (100cm)
+
+```{r}
+SC_100 <- SC_master %>%
+  filter(scale_cm == 100)
+
+abundance_100 <- glmmTMB(LSAT_Abundance ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
+                        data = SC_100, 
+                        family = tweedie(link ="log"),
+                        na.action = "na.fail")
+abundance_100 <- dredge(abundance_100, rank = "AICc")
+subset(abundance_100, delta <= 4) # null model is best model for LSAT abundance in a 100cm plot and 25cm scale
+
+# select the best model:
+best_ab_100 <- get.models(abundance_100, subset = 7)[[1]]
+
+```
+
+For all three scales, the null model is the most parsimonious for predicting LSAT abundance at the 25cm scale... Which is interesting, we can conclude from this that morphometrics have a stronger control on LSAT metrics, but not the cover of LSAT at least at the 25cm scale. 
+
+I am not sure where to go from here, other than running the analysis with multiple LSAT points per morphometric scale (which I don't have a lot of points for, but have a few and Rolo wanted me to try that). So, thoughts, opinions, etc would be appreciated before meeting on Tuesday 2/24. Thank you :) 
+
+
+

@@ -70,7 +70,7 @@ ggplot(d100, aes(x = rugo_mean, y = sapr)) +
 # ----------------- 4. Site differences -----------------------------
 
 # Boxplots comparing sites for major variables
-vars_of_interest <- c("rugo_mean", "rugo_var", "sapr", "std_curve", "plan_curve",
+vars_of_interest <- c("rugo_mean", "sapr", "std_curve", "plan_curve",
                       "slope_mean", "slope_var", "tpi")
 
 for (v in vars_of_interest) {
@@ -81,6 +81,9 @@ for (v in vars_of_interest) {
     ggtitle(paste("Site comparison:", v))
   print(p)
 }
+
+no_nndr <- master %>%
+  filter(!(site == "NNDR"))
 
 rugo <- no_nndr %>%
   ggplot(aes(x = site_code, y = rugo_mean, fill = site)) +
@@ -365,11 +368,12 @@ clean_master <- master[!(master$nail =="5" | master$nail =="6" & master$site =="
 # --------------------------6. Standardize Data -----------------------
 
 scaled_master <- clean_master %>%
-  mutate(across(c(rugo_mean, slope_mean, sapr, std_curve, plan_curve, tpi), scale))
+  mutate(across(c(rugo_mean, slope_mean, sapr, std_curve, plan_curve, tpi), ~ as.numeric(scale(.))))
 
 # scaled_not_clean <- master %>%
 #  mutate(across(c(rugo_mean, slope_mean, sapr, std_curve, plan_curve, tpi), scale))
 
+write_csv(scaled_master, "C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/toUse/LSAT/master_LSAT_scaled.csv")
 
 # ------------------------- 7. Basic models -----------------------
 

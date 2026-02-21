@@ -2,6 +2,7 @@
 # LSAT habitat suitability modelling
 # Combine all data to create GAM and GLMs 
 # Creation date of this document: 11/6/2025
+# Updated on 2/20/2026
 
 library(tidyverse)
 library(MASS)
@@ -16,164 +17,170 @@ library(bbmle)
 library(ggplot2)
 library(ggeffects)
 
-# --------------------- Prepare Clean Data -----------------------
+# --------------------- Load data ----------------------------
 
+scaled_master <- read.csv("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/toUse/LSAT/master_LSAT_scaled.csv")
+
+
+# ------------------------ Old code from 2/20 cleanout --------------
+## --------------------- Prepare Clean Data 
+# update 2/20/26 not needed because using tweedie GLM that handles 0 data
 # Add small constant to zero responses so Gamma(log) works
-scaled_master <- scaled_master %>%
-  mutate(
-    turf_length     = ifelse(turf_length == 0, 0.001, turf_length),
-    sediment_depth  = ifelse(sediment_depth == 0, 0.001, sediment_depth)
-  )
+# scaled_master <- scaled_master %>%
+#   mutate(
+#     turf_length     = ifelse(turf_length == 0, 0.001, turf_length),
+#     sediment_depth  = ifelse(sediment_depth == 0, 0.001, sediment_depth)
+#   )
 
-responses <- c("turf_length", "sediment_depth")
-scales    <- c("25","50","100")
+# responses <- c("turf_length", "sediment_depth")
+# scales    <- c("25","50","100")
 
-# --------------------- Model Formulas ----------------------------
+## --------------------- Model Formulas 
 
-model_configs <- tribble(
-  ~model_type,     ~formula,
-  "all_vars",      "rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi",
-  #"no_tpi",        "rugo_mean + slope_mean + sapr + std_curve + plan_curve",
-  #"no_std_curve",  "rugo_mean + slope_mean + sapr + plan_curve + tpi"
-)
+# model_configs <- tribble(
+#   ~model_type,     ~formula,
+#   "all_vars",      "rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi",
+#   #"no_tpi",        "rugo_mean + slope_mean + sapr + std_curve + plan_curve",
+#   #"no_std_curve",  "rugo_mean + slope_mean + sapr + plan_curve + tpi"
+# )
 
-# --------------------- Create Model Grid -------------------------
+## --------------------- Create Model Grid 
 
-model_grid <- expand_grid(
-  scale = as.numeric(scales),
-  response = responses,
-  model_type = model_configs$model_type
-)
+# model_grid <- expand_grid(
+#   scale = as.numeric(scales),
+#   response = responses,
+#   model_type = model_configs$model_type
+# )
 
-# ------------------ Function to Fit Gamma GLM --------------------
+## ------------------ Function to Fit Gamma GLM 
 
-fit_gamma_model <- function(scale, response, model_type) {
-  
-  df <- scaled_master %>% filter(scale_cm == as.numeric(scale))
-  
-  # get RHS
-  rhs <- model_configs$formula[model_configs$model_type == model_type]
-  fml <- as.formula(paste(response, "~", rhs))
-  
-  mod <- tryCatch(
-    glmmTMB(fml, data = df, family = Gamma(link = "log")),
-    error = function(e) NULL
-  )
-  if (is.null(mod)) return(NULL)
-  
-  tibble(
-    scale = scale,
-    response = response,
-    model_type = model_type,
-    n = nrow(df),
-    AIC = AIC(mod),
-    AICc = AICc(mod),
-    logLik = as.numeric(logLik(mod)),
-    deviance = mod$deviance,
-    model = list(mod)
-  )
-}
-
-
-fit_tweedie_model <- function(scale, response, model_type) {
-  
-  df <- scaled_master %>% filter(scale_cm == as.numeric(scale))
-  
-  # get RHS
-  rhs <- model_configs$formula[model_configs$model_type == model_type]
-  fml <- as.formula(paste(response, "~", rhs))
-  
-  mod <- tryCatch(
-    glmmTMB(fml, data = df, family = tweedie(link ="log")),
-    error = function(e) NULL
-  )
-  if (is.null(mod)) return(NULL)
-  
-  tibble(
-    scale = scale,
-    response = response,
-    model_type = model_type,
-    n = nrow(df),
-    AIC = AIC(mod),
-    AICc = AICc(mod),
-    logLik = as.numeric(logLik(mod)),
-    deviance = mod$deviance,
-    model = list(mod)
-  )
-}
-
-# ------------------ Fit All Models -------------------------------
-
-results_gamma <- pmap_dfr(model_grid, fit_gamma_model)
-print(results_gamma %>% arrange(response, scale, model_type))
-
-results_tweedie <- pmap_dfr(model_grid, fit_tweedie_model)
-print(results_tweedie %>% arrange(response, scale, model_type))
-
-## Where is the 25cm and 50cm turf length models? 
-# check to see if they run or fail by themselves: 
-### --------------- RUN GLMS USING glmmTMB PACKAGE!!! -------------
-
-# Gina's next steps: 
-  # run check_model(my model) to get the performance plots for each one 
-    # we are thinking there will be overdispersion.... there's a way but cross that bridge
-  # dredge every global model 
-
-# ------------------ Plot Model Performance -----------------------
+# fit_gamma_model <- function(scale, response, model_type) {
+#   
+#   df <- scaled_master %>% filter(scale_cm == as.numeric(scale))
+#   
+#   # get RHS
+#   rhs <- model_configs$formula[model_configs$model_type == model_type]
+#   fml <- as.formula(paste(response, "~", rhs))
+#   
+#   mod <- tryCatch(
+#     glmmTMB(fml, data = df, family = Gamma(link = "log")),
+#     error = function(e) NULL
+#   )
+#   if (is.null(mod)) return(NULL)
+#   
+#   tibble(
+#     scale = scale,
+#     response = response,
+#     model_type = model_type,
+#     n = nrow(df),
+#     AIC = AIC(mod),
+#     AICc = AICc(mod),
+#     logLik = as.numeric(logLik(mod)),
+#     deviance = mod$deviance,
+#     model = list(mod)
+#   )
+# }
 
 
-# Gamma family:
-gamma_turf25   <- results_gamma$model[[1]] # 25cm turf length
-gamma_sed25    <- results_gamma$model[[2]] # 25cm sediment depth
-gamma_turf50   <- results_gamma$model[[3]] # 50cm turf length
-gamma_sed50    <- results_gamma$model[[4]] # 50cm sediment depth
-gamma_turf100  <- results_gamma$model[[5]] # 100cm turf length
-gamma_sed100   <- results_gamma$model[[6]] # 100cm sediment depth
+# fit_tweedie_model <- function(scale, response, model_type) {
+#   
+#   df <- scaled_master %>% filter(scale_cm == as.numeric(scale))
+#   
+#   # get RHS
+#   rhs <- model_configs$formula[model_configs$model_type == model_type]
+#   fml <- as.formula(paste(response, "~", rhs))
+#   
+#   mod <- tryCatch(
+#     glmmTMB(fml, data = df, family = tweedie(link ="log")),
+#     error = function(e) NULL
+#   )
+#   if (is.null(mod)) return(NULL)
+#   
+#   tibble(
+#     scale = scale,
+#     response = response,
+#     model_type = model_type,
+#     n = nrow(df),
+#     AIC = AIC(mod),
+#     AICc = AICc(mod),
+#     logLik = as.numeric(logLik(mod)),
+#     deviance = mod$deviance,
+#     model = list(mod)
+#   )
+# }
 
-# Tweedie family:
-tweedie_turf25   <- results_tweedie$model[[1]] # 25cm turf length
-tweedie_sed25    <- results_tweedie$model[[2]] # 25cm sediment depth
-tweedie_turf50   <- results_tweedie$model[[3]] # 50cm turf length
-tweedie_sed50    <- results_tweedie$model[[4]] # 50cm sediment depth
-tweedie_turf100  <- results_tweedie$model[[5]] # 100cm turf length
-tweedie_sed100   <- results_tweedie$model[[6]] # 100cm sediment depth
+## ------------------ Fit All Models 
+# 
+# results_gamma <- pmap_dfr(model_grid, fit_gamma_model)
+# print(results_gamma %>% arrange(response, scale, model_type))
+# 
+# results_tweedie <- pmap_dfr(model_grid, fit_tweedie_model)
+# print(results_tweedie %>% arrange(response, scale, model_type))
+# 
+# ## Where is the 25cm and 50cm turf length models? 
+# # check to see if they run or fail by themselves: 
+#### --------------- RUN GLMS USING glmmTMB PACKAGE!!! 
+# 
+# # Gina's next steps: 
+#   # run check_model(my model) to get the performance plots for each one 
+#     # we are thinking there will be overdispersion.... there's a way but cross that bridge
+#   # dredge every global model 
+# 
+## ------------------ Plot Model Performance
+# 
+# 
+# # Gamma family:
+# gamma_turf25   <- results_gamma$model[[1]] # 25cm turf length
+# gamma_sed25    <- results_gamma$model[[2]] # 25cm sediment depth
+# gamma_turf50   <- results_gamma$model[[3]] # 50cm turf length
+# gamma_sed50    <- results_gamma$model[[4]] # 50cm sediment depth
+# gamma_turf100  <- results_gamma$model[[5]] # 100cm turf length
+# gamma_sed100   <- results_gamma$model[[6]] # 100cm sediment depth
+# 
+# # Tweedie family:
+# tweedie_turf25   <- results_tweedie$model[[1]] # 25cm turf length
+# tweedie_sed25    <- results_tweedie$model[[2]] # 25cm sediment depth
+# tweedie_turf50   <- results_tweedie$model[[3]] # 50cm turf length
+# tweedie_sed50    <- results_tweedie$model[[4]] # 50cm sediment depth
+# tweedie_turf100  <- results_tweedie$model[[5]] # 100cm turf length
+# tweedie_sed100   <- results_tweedie$model[[6]] # 100cm sediment depth
+# 
+# 
+# df_scaled <- scaled_master %>%
+#   group_by(scale_cm) %>%
+#   nest() %>%
+#   mutate(m_sed = map(data, \(data) glmmTMB(sediment_depth ~ 
+#                                              rugo_mean + slope_mean + 
+#                                              sapr + std_curve + plan_curve + 
+#                                              tpi, data = data, 
+#                                            family = tweedie(link = "log"))), 
+#          m_turf =  map(data, \(data) glmmTMB(turf_length ~ 
+#                                                rugo_mean + slope_mean + 
+#                                                sapr + std_curve + plan_curve + 
+#                                                tpi, data = data, 
+#                                              family = tweedie(link = "log"))))
+#                               
+# df_scaled$m_sed[[1]] # double check and make sure it works, it does 
+# df_scaled$m_turf[[1]]
+# 
+# check_model(df_scaled$m_sed[[1]])
+# check_model(df_scaled$m_sed[[2]])
+# check_model(df_scaled$m_sed[[3]]) # now the standard curve and tpi are in the moderate range for colinearity 
+# check_model(df_scaled$m_turf[[1]])
+# check_model(df_scaled$m_turf[[2]])
+# check_model(df_scaled$m_turf[[3]])
+# 
+# AIC(gamma_sed25, tweedie_sed25)
+# AIC(gamma_sed50, tweedie_sed50)
+# AIC(gamma_sed100, tweedie_sed100)
+# AIC(gamma_turf25, tweedie_turf25)
+# AIC(gamma_turf50, tweedie_turf50)
+# AIC(gamma_turf100, tweedie_turf100)
+
+## Tweedie wins!  
 
 
-df_scaled <- scaled_master %>%
-  group_by(scale_cm) %>%
-  nest() %>%
-  mutate(m_sed = map(data, \(data) glmmTMB(sediment_depth ~ 
-                                             rugo_mean + slope_mean + 
-                                             sapr + std_curve + plan_curve + 
-                                             tpi, data = data, 
-                                           family = tweedie(link = "log"))), 
-         m_turf =  map(data, \(data) glmmTMB(turf_length ~ 
-                                               rugo_mean + slope_mean + 
-                                               sapr + std_curve + plan_curve + 
-                                               tpi, data = data, 
-                                             family = tweedie(link = "log"))))
-                              
-df_scaled$m_sed[[1]] # double check and make sure it works, it does 
-df_scaled$m_turf[[1]]
-
-check_model(df_scaled$m_sed[[1]])
-check_model(df_scaled$m_sed[[2]])
-check_model(df_scaled$m_sed[[3]]) # now the standard curve and tpi are in the moderate range for colinearity 
-check_model(df_scaled$m_turf[[1]])
-check_model(df_scaled$m_turf[[2]])
-check_model(df_scaled$m_turf[[3]])
-
-AIC(gamma_sed25, tweedie_sed25)
-AIC(gamma_sed50, tweedie_sed50)
-AIC(gamma_sed100, tweedie_sed100)
-AIC(gamma_turf25, tweedie_turf25)
-AIC(gamma_turf50, tweedie_turf50)
-AIC(gamma_turf100, tweedie_turf100)
-
-## Tweedie wins!  -------------------
-
-
-# -------------- Dredge all tweedie global models  ------------------------
+# -------------- Create DF's for each scale & Prep:  ------------------------
 
 df25 <- scaled_master %>%
   filter(scale_cm =="25")
@@ -184,6 +191,7 @@ df100 <- scaled_master %>%
 
 options(na.action = "na.fail")
 
+# -------------------------- GLMM's: ------------------------------
 ### 25cm and sediment depth: -------------------------
 sed_25 <- glmmTMB(sediment_depth ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
                   data = df25, family = tweedie(link ="log"))
@@ -195,16 +203,17 @@ best_sed_25 <- get.models(dredge_25_sed, subset = 9)[[1]]
 
 # NO NNDR: 
 
-no_nndr <- master[!(master$nail =="5" | master$nail =="6" & master$site =="NNDR" ),] %>%
-  filter(!site_code == "NNDR")
-no_nndr_scaled <- scaled_master %>%
+
+
+no_nndr <- scaled_master %>%
   filter(!site_code == "NNDR")
 
-df25_nndr <- no_nndr_scaled %>%
+
+df25_nndr <- no_nndr %>%
   filter(scale_cm =="25")
-df50_nndr <- no_nndr_scaled %>%
+df50_nndr <- no_nndr %>%
   filter(scale_cm =="50")
-df100_nndr <- no_nndr_scaled %>%
+df100_nndr <- no_nndr %>%
   filter(scale_cm =="100")
 
 sed_25_nndr <- glmmTMB(sediment_depth ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
@@ -322,58 +331,6 @@ AICtab(best_turf_25, best_turf_50, best_turf_100)
 ## -------- Sediment Depth -----------
 
 AICtab(best_sed_25, best_sed_50, best_sed_100)
-
-
-
-## ---------- Trying to get r^2 ----------------
-
-# sediment depth: 25 
-observed <- df25$sediment_depth
-predicted <- predict(best_sed_25, type = "response")
-
-pseudo_r2 <- cor(observed, predicted)^2
-print(pseudo_r2)
-
-# sediment depth: 50 
-observed <- df50$sediment_depth
-predicted <- predict(best_sed_50, type = "response")
-
-pseudo_r2 <- cor(observed, predicted)^2
-print(pseudo_r2)
-
-# sediment depth: 100
-observed <- df100$sediment_depth
-predicted <- predict(best_sed_100, type = "response")
-
-pseudo_r2 <- cor(observed, predicted)^2
-print(pseudo_r2)
-
-
-# Turf Length: 25
-observed <- df25$turf_length
-predicted <- predict(best_turf_25, type = "response")
-
-pseudo_r2 <- cor(observed, predicted)^2
-print(pseudo_r2)
-
-# Turf Length: 50
-observed <- df50$turf_length
-predicted <- predict(best_turf_50, type = "response")
-
-pseudo_r2 <- cor(observed, predicted)^2
-print(pseudo_r2)
-
-# Turf Length: 100
-observed <- df100$turf_length
-predicted <- predict(best_turf_100, type = "response")
-
-pseudo_r2 <- cor(observed, predicted)^2
-print(pseudo_r2)
-
-## Trying other ways to get an r^2 value?? 
-
-compare_performance(best_turf_100, best_turf_50, best_turf_25)
-deviance(best_sed_100)
 
 
 # ------------------- Marginal Effects plots ----------------------

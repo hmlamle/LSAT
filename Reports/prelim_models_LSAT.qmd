@@ -34,6 +34,7 @@ library(purrr)
 
 master <- read_csv("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/toUse/LSAT/master_LSAT_dataset.csv")
 ```
+
 ## Response Variable: Turf Length
 
 ```{r}
