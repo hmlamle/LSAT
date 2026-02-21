@@ -362,7 +362,8 @@ rows_with_outliers
 
 # removal of NNDR points 5 and 6: 
 
-clean_master <- master[!(master$nail =="5" | master$nail =="6" & master$site =="NNDR" ),] 
+clean_master <- master %>%
+  dplyr::filter(!(site == "NNDR" & nail %in% c("5", "6"))) 
 
 
 # --------------------------6. Standardize Data -----------------------

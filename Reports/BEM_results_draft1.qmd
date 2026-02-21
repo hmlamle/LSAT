@@ -324,13 +324,16 @@ In addition to these mini plots, Benthic abundance and diversity is taken at eac
 
 These biological datasets have not yet been QAQC'ed for 2025, but have for 2023 which is when I first went out for South Canyon. Here I create models for predicting LSAT abundance within a 25cm plot using the morphometrics described previously at each scale. 
 
+[LSAT field methods example](LSAT field methods example.jpg)
+
+
 ```{r}
 # Filter master dataset for just South Canyon: 
 SC_og <- scaled_master %>%
   filter(site_code == "SC")
 
 # Import biological dataset: 
-C_bio <- read.csv("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/raw/LSAT/4. Biological metrics/1_Benthic_Com_FL_SED_2023-24.csv")
+SC_bio <- read.csv("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/raw/LSAT/4. Biological metrics/1_Benthic_Com_FL_SED_2023-24.csv")
 SC_bio <- SC_bio %>%
   filter(Site == "South Canyon" & Season == "Fall") 
 

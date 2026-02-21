@@ -21,7 +21,9 @@ library(readxl)
 
 # ---------------- DATA PREP -----------------------------------------
 
-SC_og <- master_lsat %>%
+
+SC_og <- read.csv("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/toUse/LSAT/master_LSAT_dataset.csv")
+SC_og <- SC_og %>%
   filter(site_code == "SC")
 
 SC_bio <- read.csv("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/raw/LSAT/4. Biological metrics/1_Benthic_Com_FL_SED_2023-24.csv")
