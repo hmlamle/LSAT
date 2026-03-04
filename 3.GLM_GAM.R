@@ -19,7 +19,8 @@ library(ggeffects)
 
 # --------------------- Load data ----------------------------
 
-scaled_master <- read.csv("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/toUse/LSAT/master_LSAT_scaled.csv")
+
+scaled_master <- read.csv("master_LSAT_scaled.csv")
 
 
 # ------------------------ Old code from 2/20 cleanout --------------
@@ -191,19 +192,7 @@ df100 <- scaled_master %>%
 
 options(na.action = "na.fail")
 
-# -------------------------- GLMM's: ------------------------------
-### 25cm and sediment depth: -------------------------
-sed_25 <- glmmTMB(sediment_depth ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
-                  data = df25, family = tweedie(link ="log"))
-dredge_25_sed <- dredge(sed_25, rank = "AICc")
-subset(dredge_25_sed, delta <= 4)
-
-# select the best model:
-best_sed_25 <- get.models(dredge_25_sed, subset = 9)[[1]]
-
 # NO NNDR: 
-
-
 
 no_nndr <- scaled_master %>%
   filter(!site_code == "NNDR")
@@ -216,14 +205,25 @@ df50_nndr <- no_nndr %>%
 df100_nndr <- no_nndr %>%
   filter(scale_cm =="100")
 
+# -------------------------- GLM's: ------------------------------
+#### 25cm and sediment depth: -------------------------
+sed_25 <- glmmTMB(sediment_depth ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
+                  data = df25, family = tweedie(link ="log"))
+dredge_25_sed <- dredge(sed_25, rank = "AICc")
+subset(dredge_25_sed, delta <= 4)
+
+# select the best model:
+best_sed_25 <- get.models(dredge_25_sed, subset = 9)[[1]]
+
+
 sed_25_nndr <- glmmTMB(sediment_depth ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
                   data = df25_nndr, family = tweedie(link ="log"))
 dredge_25_sed_nndr <- dredge(sed_25_nndr, rank = "AICc")
 subset(dredge_25_sed_nndr, delta <= 4)
 
-best_sed_25 <- get.models(dredge_25_sed_nndr, subset = 10)[[1]]
+best_sed_25_nndr <- get.models(dredge_25_sed_nndr, subset = 2)[[1]]
 
-### 50cm and sediment depth: -------------------------
+#### 50cm and sediment depth: -------------------------
 sed_50 <- glmmTMB(sediment_depth ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
                   data = df50, family = tweedie(link ="log"))
 dredge_50_sed <- dredge(sed_50, rank = "AICc")
@@ -240,9 +240,9 @@ sed_50_nndr <- glmmTMB(sediment_depth ~ rugo_mean + slope_mean + sapr + std_curv
 dredge_50_sed_nndr <- dredge(sed_50_nndr, rank = "AICc")
 subset(dredge_50_sed_nndr, delta <= 4)
 
-best_sed_50 <- get.models(dredge_50_sed_nndr, subset = 5)[[1]]
+best_sed_50_nndr <- get.models(dredge_50_sed_nndr, subset = 2)[[1]]
 
-### 100cm and sediment depth: ------------------------
+#### 100cm and sediment depth: ------------------------
 sed_100 <- glmmTMB(sediment_depth ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
                   data = df100, family = tweedie(link ="log"))
 dredge_100_sed <- dredge(sed_100, rank = "AICc")
@@ -260,9 +260,9 @@ sed_100_nndr <- glmmTMB(sediment_depth ~ rugo_mean + slope_mean + sapr + std_cur
 dredge_100_sed_nndr <- dredge(sed_100_nndr, rank = "AICc")
 subset(dredge_100_sed_nndr, delta <= 4)
 
-best_sed_100 <- get.models(dredge_100_sed_nndr, subset = 1)[[1]]
+best_sed_100_nndr <- get.models(dredge_100_sed_nndr, subset = 1)[[1]]
 
-### 25cm and Turf Length: ----------------------------
+#### 25cm and Turf Length: ----------------------------
 turf_25 <- glmmTMB(turf_length ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
                   data = df25, family = tweedie(link ="log"))
 dredge_25_turf <- dredge(turf_25, rank = "AICc")
@@ -271,7 +271,7 @@ subset(dredge_25_turf, delta <= 4)
 check_model(turf_25)
 
 # select the best model:
-best_turf_25 <- get.models(dredge_25_turf, subset = 2)[[1]]
+best_turf_25 <- get.models(dredge_25_turf, subset = 3)[[1]]
 
 # NO NNDR: 
 
@@ -281,16 +281,16 @@ dredge_turf_25_nndr <- dredge(turf_25_nndr, rank = "AICc")
 subset(dredge_turf_25_nndr, delta <= 4)
 
 # select the best model:
-best_turf_25 <- get.models(dredge_turf_25_nndr, subset = 1)[[1]]
+best_turf_25_nndr <- get.models(dredge_turf_25_nndr, subset = 1)[[1]]
 
-### 50cm and Turf Length: ---------------------------
+#### 50cm and Turf Length: ---------------------------
 turf_50 <- glmmTMB(turf_length ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
                   data = df50, family = tweedie(link ="log"))
 dredge_50_turf <- dredge(turf_50, rank = "AICc")
 subset(dredge_50_turf, delta <= 4)
 
 # select the best model:
-best_turf_50 <- get.models(dredge_50_turf, subset = 5)[[1]]
+best_turf_50 <- get.models(dredge_50_turf, subset = 4)[[1]]
 
 # NO NNDR:
 
@@ -300,9 +300,9 @@ dredge_50_turf_nndr <- dredge(turf_50_nndr, rank = "AICc")
 subset(dredge_50_turf_nndr, delta <= 4)
 
 # select the best model:
-best_turf_50 <- get.models(dredge_50_turf_nndr, subset = 1)[[1]]
+best_turf_50_nndr <- get.models(dredge_50_turf_nndr, subset = 5)[[1]]
 
-### 100cm and Turf Length: --------------------------
+#### 100cm and Turf Length: --------------------------
 turf_100 <- glmmTMB(turf_length ~ rugo_mean + slope_mean + sapr + std_curve + plan_curve + tpi,
                    data = df100, family = tweedie(link ="log"))
 dredge_100_turf <- dredge(turf_100, rank = "AICc")
@@ -318,22 +318,34 @@ turf_100_nndr <- glmmTMB(turf_length ~ rugo_mean + slope_mean + sapr + std_curve
 dredge_100_turf_nndr <- dredge(turf_100_nndr, rank = "AICc")
 subset(dredge_100_turf_nndr, delta <= 4)
 
-best_turf_100 <- get.models(dredge_100_turf_nndr, subset = 6)[[1]]
+best_turf_100_nndr <- get.models(dredge_100_turf_nndr, subset = 9)[[1]]
 
-# ------------------- Comparison of scale for most parsimonious -----------
+## ------------------- Comparison of scale for most parsimonious -----------
 # comparing best dredged model (i have to pick)
 
-## ------ Turf Length ----------
+#### ------ Turf Length ----------
 
 library(bbmle)
-AICtab(best_turf_25, best_turf_50, best_turf_100)
+
+AICtab(best_turf_25, best_turf_50, best_turf_100) # with NNDR
+# 100cm scale is the best model inclduing NNDR 
+
+AICtab(best_turf_25_nndr, best_turf_50_nndr, best_turf_100_nndr) # without NNDR
+# 50cm scale is best model without NNDR 
+
+summary(best_turf_50_nndr)
 
 ## -------- Sediment Depth -----------
 
-AICtab(best_sed_25, best_sed_50, best_sed_100)
+AICtab(best_sed_25, best_sed_50, best_sed_100) # with NNDR 
+# 100cm scale is the best model including NNDR 
 
+AICtab(best_sed_25_nndr, best_sed_50_nndr, best_sed_100_nndr) # without NNDR 
+# 50cm scale is the best model without NNDR  
 
-# ------------------- Marginal Effects plots ----------------------
+summary(best_sed_50_nndr)
+
+## ------------------- Marginal Effects plots ----------------------
 # only do the best one for sediment depth and turf length 
 
 ## Turf Length ---------------
@@ -428,47 +440,193 @@ print(sed_slope)
 ggsave("figs/sed_predict.png", units="in", width=8, height=6, dpi=600) # better way to save figs 
 
 
-# ------------------------ Top Predictors across Scales ----------------------
+## ------------------------ REVIEW: Top Predictors across Scales ----------------------
 
-# sediment depth models
-p_sed_25  <- ggpredict(sed_25,  terms = "rugo_mean") %>% mutate(scale = "25 cm")
-p_sed_50  <- ggpredict(sed_50,  terms = "rugo_mean") %>% mutate(scale = "50 cm")
-p_sed_100 <- ggpredict(sed_100, terms = "rugo_mean") %>% mutate(scale = "100 cm")
+# # sediment depth models
+# p_sed_25  <- ggpredict(sed_25,  terms = "rugo_mean") %>% mutate(scale = "25 cm")
+# p_sed_50  <- ggpredict(sed_50,  terms = "rugo_mean") %>% mutate(scale = "50 cm")
+# p_sed_100 <- ggpredict(sed_100, terms = "rugo_mean") %>% mutate(scale = "100 cm")
+# 
+# sed_all <- bind_rows(p_sed_25, p_sed_50, p_sed_100)
+# 
+# # turf length models
+# p_turf_25  <- ggpredict(turf_25,  terms = "rugo_mean") %>% mutate(scale = "25 cm")
+# p_turf_50  <- ggpredict(turf_50,  terms = "rugo_mean") %>% mutate(scale = "50 cm")
+# p_turf_100 <- ggpredict(turf_100, terms = "rugo_mean") %>% mutate(scale = "100 cm")
+# 
+# turf_all <- bind_rows(p_turf_25, p_turf_50, p_turf_100)
+# 
+# plot_sed <- ggplot(sed_all, aes(x = x, y = predicted, color = scale)) +
+#   geom_line(size = 1.1) +
+#   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = scale),
+#               alpha = 0.12, color = NA) +
+#   labs(
+#     x = "Rugosity (rugo_mean)",
+#     y = "Predicted Sediment Depth",
+#     color = "Buffer Scale",
+#     fill = "Buffer Scale",
+#     title = "Sediment Depth ~ Rugosity Across Buffer Scales"
+#   ) +
+#   theme_bw(base_size = 14)
+# 
+# plot_turf <- ggplot(turf_all, aes(x = x, y = predicted, color = scale)) +
+#   geom_line(size = 1.1) +
+#   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = scale),
+#               alpha = 0.12, color = NA) +
+#   labs(
+#     x = "Rugosity (rugo_mean)",
+#     y = "Predicted Turf Length",
+#     color = "Buffer Scale",
+#     fill = "Buffer Scale",
+#     title = "Turf Length ~ Rugosity Across Buffer Scales"
+#   ) +
+#   theme_bw(base_size = 14)
+# 
+# plot_sed / plot_turf
 
-sed_all <- bind_rows(p_sed_25, p_sed_50, p_sed_100)
 
-# turf length models
-p_turf_25  <- ggpredict(turf_25,  terms = "rugo_mean") %>% mutate(scale = "25 cm")
-p_turf_50  <- ggpredict(turf_50,  terms = "rugo_mean") %>% mutate(scale = "50 cm")
-p_turf_100 <- ggpredict(turf_100, terms = "rugo_mean") %>% mutate(scale = "100 cm")
 
-turf_all <- bind_rows(p_turf_25, p_turf_50, p_turf_100)
+# -------------------------- GAMs: -------------------------------------
 
-plot_sed <- ggplot(sed_all, aes(x = x, y = predicted, color = scale)) +
-  geom_line(size = 1.1) +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = scale),
-              alpha = 0.12, color = NA) +
-  labs(
-    x = "Rugosity (rugo_mean)",
-    y = "Predicted Sediment Depth",
-    color = "Buffer Scale",
-    fill = "Buffer Scale",
-    title = "Sediment Depth ~ Rugosity Across Buffer Scales"
-  ) +
-  theme_bw(base_size = 14)
+library(mgcv)
 
-plot_turf <- ggplot(turf_all, aes(x = x, y = predicted, color = scale)) +
-  geom_line(size = 1.1) +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = scale),
-              alpha = 0.12, color = NA) +
-  labs(
-    x = "Rugosity (rugo_mean)",
-    y = "Predicted Turf Length",
-    color = "Buffer Scale",
-    fill = "Buffer Scale",
-    title = "Turf Length ~ Rugosity Across Buffer Scales"
-  ) +
-  theme_bw(base_size = 14)
+# right now, just choosing to model best scale (50cm) for both responses: 
 
-plot_sed / plot_turf
+## Sediment Depth: --------------
+
+sed_50_gam <- mgcv::gam(
+  sediment_depth ~ 
+    s(rugo_mean, k = 5) +
+    s(slope_mean, k = 5) +
+    s(plan_curve, k = 5) +
+    s(std_curve, k = 5) +
+    s(sapr, k = 5) +
+    s(tpi, k = 5),
+  data = df50,
+  family = mgcv::tw(link = "log"),
+  method = "REML"
+)
+gam.check(sed_50_gam)
+
+
+summary(sed_50_gam)
+# Summary Results: 
+# rugosity, standard curve, and SAPR all have edf = 1 
+# Remove these values??? 
+
+sed_50_gam_2 <- mgcv::gam( # removing rugosity first
+  sediment_depth ~ 
+    s(slope_mean, k = 5) +
+    s(plan_curve, k = 5) +
+    s(std_curve, k = 5) +
+    s(sapr, k = 5) +
+    s(tpi, k = 5),
+  data = df50,
+  family = mgcv::tw(link = "log"),
+  method = "REML"
+)
+summary(sed_50_gam_2)
+AIC(sed_50_gam, sed_50_gam_2) # model 2 (no rugosity) slightly better AIC: 173.0 to 171.3
+
+# remove standard curve next? 
+
+sed_50_gam_3 <- mgcv::gam( # removing rugosity and standard curve
+  sediment_depth ~ 
+    s(slope_mean, k = 5) +
+    s(plan_curve, k = 5) +
+    s(sapr, k = 5) +
+    s(tpi, k = 5),
+  data = df50,
+  family = mgcv::tw(link = "log"),
+  method = "REML"
+)
+summary(sed_50_gam_3)
+AIC(sed_50_gam, sed_50_gam_2, sed_50_gam_3) # model 3 better... 173 : 171 : 169
+
+# and now remove SAPR too: 
+
+sed_50_gam_4 <- mgcv::gam( # removing rugosity and standard curve and sapr
+  sediment_depth ~ 
+    s(slope_mean, k = 5) +
+    s(plan_curve, k = 5) +
+    s(tpi, k = 5),
+  data = df50,
+  family = mgcv::tw(link = "log"),
+  method = "REML"
+)
+summary(sed_50_gam_4) # now TPI is also at 1, and the percent deviance went down 
+AIC(sed_50_gam, sed_50_gam_2, sed_50_gam_3, sed_50_gam_4) # model 3 is still better ... 173 : 171 : 169 : 174
+
+
+plot(sed_50_gam_3, pages = 1, shade = TRUE)
+
+## Turf Length --------------
+
+turf_50_gam <- gam(
+  turf_length ~ 
+    s(rugo_mean, k = 5) +
+    s(slope_mean, k = 5) +
+    s(plan_curve, k = 5) +
+    s(std_curve, k = 5) +
+    s(sapr, k = 5) +
+    s(tpi, k = 5),
+  data = df50,
+  family = tw(link = "log"),
+  method = "REML"
+)
+gam.check(turf_50_gam)
+
+summary(turf_50_gam) # the only variable with edf ~ 1 is sapr, so lets remove that
+
+turf_50_gam_2 <- gam( # removing SAPR
+  turf_length ~ 
+    s(rugo_mean, k = 5) +
+    s(slope_mean, k = 5) +
+    s(plan_curve, k = 5) +
+    s(std_curve, k = 5) +
+    s(tpi, k = 5),
+  data = df50,
+  family = tw(link = "log"),
+  method = "REML"
+)
+
+summary(turf_50_gam_2) # now slope and standard curve edf ~1 too... 
+AIC(turf_50_gam, turf_50_gam_2) # model 2 is better though: 257 : 226
+
+# Let's remove the other variables? slope and std curve
+
+turf_50_gam_3 <- gam( # removing slope
+  turf_length ~ 
+    s(rugo_mean, k = 5) +
+    s(plan_curve, k = 5) +
+    s(std_curve, k = 5) +
+    s(tpi, k = 5),
+  data = df50,
+  family = tw(link = "log"),
+  method = "REML"
+)
+
+summary(turf_50_gam_3) # std curve still ~1
+AIC(turf_50_gam, turf_50_gam_2, turf_50_gam_3) # AIC jumped way up for this one: 257 : 226 : 343
+
+# taking out std curve but leaving slope: 
+
+turf_50_gam_4 <- gam( # removing std curve
+  turf_length ~ 
+    s(rugo_mean, k = 5) +
+    s(plan_curve, k = 5) +
+    s(slope_mean, k = 5) +
+    s(tpi, k = 5),
+  data = df50,
+  family = tw(link = "log"),
+  method = "REML"
+)
+
+summary(turf_50_gam_4) # std curve still ~1
+AIC(turf_50_gam, turf_50_gam_2, turf_50_gam_3, turf_50_gam_4) # Same as model 3 - 257 : 226 : 343 : 343
+
+
+
+plot(turf_50_gam_2, pages = 1, shade = TRUE)
+
 

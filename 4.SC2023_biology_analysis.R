@@ -22,11 +22,11 @@ library(readxl)
 # ---------------- DATA PREP -----------------------------------------
 
 
-SC_og <- read.csv("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/toUse/LSAT/master_LSAT_dataset.csv")
+SC_og <- read.csv("master_LSAT_scaled.csv")
 SC_og <- SC_og %>%
   filter(site_code == "SC")
 
-SC_bio <- read.csv("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/raw/LSAT/4. Biological metrics/1_Benthic_Com_FL_SED_2023-24.csv")
+SC_bio <- read.csv("1_Benthic_Com_FL_SED_2023-24.csv")
 SC_bio <- SC_bio %>%
   filter(Site == "South Canyon" & Season == "Fall") 
 SC_bio$LSAT_Abundance <- SC_bio$LSAT_Abundance / 100
@@ -53,7 +53,7 @@ subset(abundance_25, delta <= 4) # null model is most parsimonious for LSAT abun
 
 
 # select the best model:
-best_ab_25 <- get.models(abundance_25, subset = 4)[[1]]
+best_ab_25 <- get.models(abundance_25, subset = 1)[[1]]
 
 
 ### 50 cm scale --------------
@@ -70,7 +70,7 @@ subset(abundance_50, delta <= 4) # null model is best model for LSAT abundance i
 
 
 # select the best model:
-best_ab_50 <- get.models(abundance_50, subset = 1)[[1]]
+best_ab_50 <- get.models(abundance_50, subset = 2)[[1]]
 
 
 ### 100 cm scale --------------
@@ -87,13 +87,43 @@ subset(abundance_100, delta <= 4) # null model is best model for LSAT abundance 
 
 
 # select the best model:
-best_ab_100 <- get.models(abundance_100, subset = 1)[[1]]
+best_ab_100 <- get.models(abundance_100, subset = 2)[[1]]
 
+## ------------------- Comparison of scale for most parsimonious -----------
+# comparing best dredged model (i have to pick)
 
+library(bbmle)
 
-# --------------------------- Next Steps... ----------------------------
+AICtab(best_ab_25, best_ab_50, best_ab_100) # only for South Canyon
+# 25cm scale is the winner! 
 
-model = glmmTMB(LSAT_Abundance ~ sapr,
-                data = SC_100,
-                family = tweedie(link = "log"))
-summary(model)
+# --------------------------- Plot Figs ----------------------------
+
+orig_breaks <- c(1, 1.1, 1.2, 1.3, 1.4, 1.5)
+z_breaks <- (orig_breaks - 1.665161) / 0.8671408
+
+  
+
+pred_abundance <- ggpredict(best_ab_25, terms = "rugo_mean") 
+abundance_rugo <- plot(pred_abundance) +
+  ggtitle("") +
+  coord_cartesian(xlim = c(-0.6, -0.1904662)) +
+  theme_classic()+
+  labs(y = "Predicted LSAT % Cover",
+       x = "Mean Rugosity") +
+  scale_x_continuous(
+    breaks = z_breaks,
+    labels = function(z) round(z * 0.8671408 + 1.665161, 2))+
+  theme(axis.title = element_text(size = 14),
+        axis.text.y = element_text(size = 14, colour = "black"),
+        axis.text.x = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust=0.5),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = 'none',
+        legend.title = element_text(size = 14),
+        strip.text = element_text(size = 14),
+        legend.text = element_text(size = 12))
+print(abundance_rugo)
+
+ggsave("figs/pcover_predict.png", units="in", width=8, height=6, dpi=600) # better way to save figs 

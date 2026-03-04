@@ -21,8 +21,10 @@ library(dplyr)
 
 # --------------------- 1. Load Data -----------------------------------
 
-master <- read_csv("C:/Users/hanna/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/toUse/LSAT/master_LSAT_dataset.csv") %>%
+master <- read_csv("C:/Users/hlamle/Florida International University/Coral Reef Fisheries - 2. Hannah-Marie Lamle/data/toUse/LSAT/master_LSAT_dataset.csv") %>%
   clean_names()
+
+"C:\Users\hlamle\Florida International University\Coral Reef Fisheries - 2. Hannah-Marie Lamle\data\toUse\LSAT\master_LSAT_dataset.csv"
 
 # Quick structure 
 glimpse(master)
